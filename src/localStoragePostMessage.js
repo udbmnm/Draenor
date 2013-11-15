@@ -21,6 +21,7 @@
         localstoreConnectors.cmdMap = {};
         window.addEventListener('message',function(e){
             var data = e.data;
+            console.log(data);
             localstoreConnectors.cmdMap['message_'+index] = $.parseJSON(data);
             if(index === localstoreConnectors.length - 1) callback(localstoreConnectors.cmdMap);
             index++;
@@ -76,11 +77,22 @@
             window.parent.postMessage(v,url);
         });
     }
+    /**
+    *   @method remove
+    */
+    var remove = function(bool){
+        if($.type(bool) === 'boolean'){
+            storage.clear();
+        }else{
+            storage.remove(bool);
+        }
+    }
     $.storage = {
         receiveMessage:receiveMessage,
         set:set,
         get:get,
         isExists:isExists,
-        postMessage:postMessage
+        postMessage:postMessage,
+        remove:remove
     }
 })(Zepto);

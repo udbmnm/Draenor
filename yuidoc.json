@@ -1,0 +1,10 @@
+{
+    "name": "wanyan mobile",
+    "description": "wanyan mobile",
+    "version": "1.0.0",
+    "options": {
+        "linkNatives": "true",
+        "outdir": "./doc",
+        "paths": "."
+    }
+}
