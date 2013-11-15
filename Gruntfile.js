@@ -15,44 +15,19 @@ module.exports = function(grunt){
         banner:'/*\n'+
             '*  Copyright <%= grunt.template.today("yyyy-mm-dd")%>\n'+
             '*  Author <%=pkg.author%>\n'+
-            '*/\n',
-        jshint:{  //代码检查
-            weixin:{    //分配项目运行命令 
-                files:[
-                    {
-                        expand: true,
-                        cwd: '<%=pkg.address.weixin%>',
-                        src: ['./*.js']
-                    }
-                ],
-                options:op
-            }
-        },
+            '*  Dependent <%=pkg.message%>'+
+            '*/\n\n',
         concat:{  //文件合并
-            weixin:{      //分配项目运行命令 
+            library:{      //分配项目运行命令 
                 options:{
                     banner:'<%=banner%>'
                 },
                 files:[
-
+                    {src:['src/*.js'],dest:'build/rainbow.js'}
                 ]
             }
         },
         uglify:{  //文件压缩
-            weixin:{        //分配项目运行命令 
-                options:{
-                    banner:'<%=banner%>'
-                },
-                files:[
-                    {
-                        expand: true,
-                        cwd: '<%=pkg.address.weixin%>',
-                        src: ['./**/*.js'],
-                        dest: '<%=pkg.address.weixin%>',                         
-                        ext: '.min.js',
-                    }
-                ]
-            },
             library:{
                 options:{
                     banner:'<%=banner%>'
@@ -60,22 +35,22 @@ module.exports = function(grunt){
                 files:[
                     {
                         expand: true,
-                        cwd: 'libs/',
+                        cwd: 'src/',
                         src: ['./*.js'],
-                        dest: 'libs/resources/',                         
+                        dest: 'build/',                         
                         ext: '.min.js',
+                    },
+                    {
+                        src:'build/rainbow.js',
+                        dest:'build/rainbow.min.js'
                     }
                 ]
             }
         }
     });
     //定制task
-    grunt.loadNpmTasks('grunt-contrib-jshint');
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-contrib-uglify');
-    //项目yanex分配命令执行
-    grunt.registerTask('weixin',['concat:weixin','uglify:weixin']);
-    grunt.registerTask('jsweixin',['jshint:weixin']);
     //库文件libs分配命令执行
-    grunt.registerTask('libs',['uglify:library']);
+    grunt.registerTask('libs',['concat:library','uglify:library']);
 }

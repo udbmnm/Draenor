@@ -79,6 +79,7 @@
     }
     /**
     *   @method remove
+    *   @param bool {boolean or string}
     */
     var remove = function(bool){
         if($.type(bool) === 'boolean'){

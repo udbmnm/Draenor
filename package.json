@@ -12,6 +12,7 @@
         "grunt-regarde": "latest",
         "grunt-contrib-livereload": "latest"
     },
+    "message":"依赖于zepto.js，mobile端web ui 插件",
     "address":{
         "src":"src/"
     }
