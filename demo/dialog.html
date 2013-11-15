@@ -16,22 +16,22 @@
 	</head>
 	<body>
 		<button id="open">对话框</button>
-		<div id="model" class="modal" style="display:none;">
+		<section id="model" class="modal" style="display:none;">
 			<div class="modal-dialog">
 				<div class="modal-content">
-					<div class="modal-header">
+					<header class="modal-header">
 				        <h4 class="modal-title">Modal title</h4>
-				    </div>
-				    <div class="modal-body">
+				    </header>
+				    <section class="modal-body">
 				        <p>One fine body&hellip;</p>
-				    </div>
-				    <div class="modal-footer">
+				    </section>
+				    <footer class="modal-footer">
 				    	<button type="button" class="btn btn-primary">Save changes</button>
 				        <button type="button" class="btn btn-default" id="close">Close</button>
-				    </div>
+				    </footer>
 				</div>
 			</div>
-		</div>
+		</section>
 		<script type="text/javascript" src="../src/dialog.js"></script>
 		<script type="text/javascript">
 			var model = $('#model').dialog();
