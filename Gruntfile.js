@@ -27,6 +27,16 @@ module.exports = function(grunt){
                 ]
             }
         },
+        cssmin:{
+            library:{
+                options:{
+                    banner:'<%=banner%>'
+                },
+                files:[
+                    {src:['style/rainbow.css'],dest:'build/rainbow.min.css'}
+                ]
+            }
+        },
         uglify:{  //文件压缩
             library:{
                 options:{
@@ -49,8 +59,9 @@ module.exports = function(grunt){
         }
     });
     //定制task
+    grunt.loadNpmTasks('grunt-contrib-cssmin');
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-contrib-uglify');
     //库文件libs分配命令执行
-    grunt.registerTask('libs',['concat:library','uglify:library']);
+    grunt.registerTask('libs',['concat:library','uglify:library','cssmin:library']);
 }
