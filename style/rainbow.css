@@ -142,3 +142,20 @@
     color: #fff;
     font-size: 16px;
 }
+.banner_btn{
+    margin: 0 auto;
+    position: absolute;
+    bottom: 0px;
+    left: 45%;
+}
+.banner_btn li {
+    float: left;
+    width: 40px;
+    background: #231;
+    height: 30px;
+    margin: 0 5px 0 0;
+    cursor: pointer;
+}
+.banner_btn li.hover{
+    background: #798;
+}

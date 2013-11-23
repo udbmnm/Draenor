@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<!-- Always force latest IE rendering engine (even in intranet) & Chrome Frame
+		Remove this if you use the .htaccess -->
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+		<title>mobile banner</title>
+		<meta name="viewport" content="width=device-width; initial-scale=1.0" />
+		<!-- Replace favicon.ico & apple-touch-icon.png in the root of your domain and delete these references -->
+		<link rel="shortcut icon" href="/favicon.ico" />
+		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+		<link rel="stylesheet" type="text/css" href="../style/reset-min.css">
+		<link rel="stylesheet" type="text/css" href="../style/rainbow.css">
+		<script type="text/javascript" src="../zepto/zepto.js"></script>
+		<script type="text/javascript" src="../template.js"></script>
+		<style type="text/css">
+			.head{
+				position: relative;
+				width: 100%;
+				height: 400px;
+				overflow: hidden;
+			}
+			.banner{
+				position: absolute;
+				overflow: hidden;
+			}
+			.banner_img{
+				float: left;
+				height: 350px;
+			}
+			.banner_img img{
+				width: 100%;
+			}
+		</style>
+	</head>
+	<body>
+		<header class="head">
+			<div id="banner" class="banner">
+				<div class="banner_img">
+					<img src="http://content.battlenet.com.cn/wow/media/screenshots/transmog/draenei/draenei-female071-large.jpg">
+				</div>
+				<div class="banner_img">
+					<img src="http://content.battlenet.com.cn/wow/media/screenshots/transmog/draenei/draenei-female072-large.jpg">
+				</div>
+				<div class="banner_img">
+					<img src="http://content.battlenet.com.cn/wow/media/screenshots/transmog/draenei/draenei-female073-large.jpg">
+				</div>
+			</div>
+		</header>
+		<script type="text/javascript" src="../src/banner.js"></script>
+		<script type="text/javascript" src="../src/jsMorph-0.5.0.js"></script>
+		<script type="text/javascript">
+			$('#banner').banner({
+				list:3
+			});
+		</script>
+	</body>
+</html>
