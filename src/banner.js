@@ -2,24 +2,41 @@
 * mobile ui banner 依赖 zepto.js  作者：wenren
 */
 (function($){
+    var desc = false;
+    var touchStart = function(self,animate){
+        animate.reset(self.id, {left:'-'+self.width*self.index+ 'px'});
+        animate.start();
+        self.index++;
+        self.list.removeClass('hover');
+        self.list.eq(self.index - 1).addClass('hover'); 
+    }
+    var touchEnd = function(self,animate){
+        self.list.removeClass('hover');
+        self.list.eq(self.index - 1).addClass('hover');
+        self.index--;
+        animate.reset(self.id, {left:'-'+self.width*self.index+ 'px'});
+        animate.start();
+    }
     var Banner = function(id,options){
         this.id = id.attr('id');
         this.el = id;
         this.parent = this.el.parent();
         this.width = this.parent.width();
         this.options = options;
-        this.child = this.el.children();
-        if(this.options.template === undefined) {
-          this.el.css({width:this.width*this.options.list});
-          this.child.css({width:this.width});
+        this.el.css({width:this.width*this.options.list});
+        if(this.options.template === undefined) { 
+            this.child = this.el.children();         
+            this.child.css({width:this.width});
+        }else{
+            this.create();
         }
         var list = '<ul id="ul_'+this.id+'" class="banner_btn">';
         for(var i = 0;i<this.options.list;i++){
             if(i === 0){
-               list += '<li class="hover"></li>';
+               list += '<li class="hover" data-list="'+(i+1)+'"></li>';
                continue;
             } 
-            list += '<li></li>';
+            list += '<li data-list="'+(i+1)+'"></li>';
         }
         list += '</ul>';
         this.parent.append(list);
@@ -34,16 +51,41 @@
             this._resize();
             this._playout();
         },
+        create:function(){
+            var render = template.compile(this.options.template);
+            var createHTML = render({data:this.options.data});
+            this.el.append(createHTML);
+            this.child = this.el.children();  
+            this.child.css({width:this.width});
+        },
         _delegate:function(){
             var self = this;
-            /**
-            * mobile 不需要按钮
-            */
-            // $('#ul_'+this.id).delegate('li','click',function(e){
-            //         clearTimeout(self.end);
-            //         clearTimeout(self.star);
-            //         self._playout();
+            // this.el.delegate('div.banner','touchstart',function(){
+            //     clearTimeout(self.end);
+            //     clearTimeout(self.star);
             // });
+            // this.el.delegate('div.banner','touchend',function(){
+
+            // });
+            // this.el.delegate('div.banner','touchmove',function(){
+
+            // });
+            /**
+            * mobile 不需要按钮，用于测试
+            */
+            var bool = false;
+            $('#ul_'+this.id).delegate('li','click',function(){
+                clearTimeout(self.play);
+                clearTimeout(self.end);
+                clearTimeout(self.star);
+                if(!bool){
+                    bool = true;
+                    self._touchPlay();
+                    var time = setTimeout(function(){
+                        bool = false;
+                    },300);
+                }                
+            });
         },
         _resize:function(){
             var self = this;
@@ -51,6 +93,7 @@
             window.addEventListener('resize',function(){
                 if(!bool){
                     bool = true;
+                    clearTimeout(self.play);
                     clearTimeout(self.end);
                     clearTimeout(self.star);
                     self.width = self.parent.width();
@@ -66,9 +109,26 @@
         },
         _playout:function(){
             var self = this;
-            setTimeout(function(){
+            this.play = setTimeout(function(){
                 self.start(self.animate);
             },4000);
+        },
+        _touchPlay:function(){
+            var self = this;
+            if(this.index === this.max){
+                this.index--;
+                desc = true;
+            }
+            if(this.index === 0){
+                this.index++;
+                desc = false;
+            }
+            if(desc){
+                touchEnd(self,self.animate);
+            }else{
+                touchStart(self,self.animate);
+            }
+            this._playout();            
         },
         start:function(animate){
             var self = this;
@@ -76,14 +136,10 @@
               this.index--;
               this.end = setTimeout(function(){
                 self.endMinus(animate);
-              },4000)
+              },4000);
               return false;
             }
-            animate.reset(self.id, {left:'-'+self.width*this.index+ 'px'});
-            animate.start();
-            this.index ++;
-            this.list.removeClass('hover');
-            this.list.eq(this.index - 1).addClass('hover');
+            touchStart(self,self.animate);
             this.star = setTimeout(function(){
                self.start(animate);
             },4000);
@@ -97,11 +153,7 @@
                 },4000);
                 return false;
             }
-            this.list.removeClass('hover');
-            this.list.eq(this.index - 1).addClass('hover');
-            this.index--
-            animate.reset(self.id, {left:'-'+self.width*this.index+ 'px'});
-            animate.start();
+            touchEnd(self,self.animate);
             this.end = setTimeout(function(){
               self.endMinus(animate);
             },4000);
