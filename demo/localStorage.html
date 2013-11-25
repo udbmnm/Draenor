@@ -6,7 +6,7 @@
 		Remove this if you use the .htaccess -->
 		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
 		<title>mobile localStorage</title>
-		<meta name="viewport" content="width=device-width; initial-scale=1.0" />
+		<meta name="viewport" content="width=device-width,initial-scale=1.0" />
 		<!-- Replace favicon.ico & apple-touch-icon.png in the root of your domain and delete these references -->
 		<link rel="shortcut icon" href="/favicon.ico" />
 		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -15,16 +15,19 @@
 	</head>
 	<body>
 		<button id="open">提取本地存储</button>
-		<script type="text/javascript" src="../src/localStoragePostMessage.js"></script>
+		<a href="button.html">测试session</a>
+		<script type="text/javascript" src="../src/storage.js"></script>
 		<script type="text/javascript">
 			var data = [
 				{"name":"build","id":"0321"},
 				{"name":"wenren","id":"X-UA-Compatible"}
 			];
-			$.storage.set('data',data);
+			var guid = $.guid.ToString('D');
+			$.storage.set('localData',data);
+			$.storage.set('login',guid,true);
 			$('#open').on('click',function(){
-				if($.storage.isExists('data')){
-					console.log($.storage.get('data'));
+				if($.storage.isExists('login',true)){
+					console.log($.storage.get('login',true));
 				}
 			});
 		</script>

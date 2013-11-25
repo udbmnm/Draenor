@@ -3,6 +3,11 @@
 */
 (function($){
     var desc = false;
+    /**
+    *   @method touchStart
+    *   @param self {object}
+    *   @param animate {object}
+    */
     var touchStart = function(self,animate){
         animate.reset(self.id, {left:'-'+self.width*self.index+ 'px'});
         animate.start();
@@ -10,6 +15,11 @@
         self.list.removeClass('hover');
         self.list.eq(self.index - 1).addClass('hover'); 
     }
+    /**
+    *   @method touchEnd
+    *   @param self {object}
+    *   @param animate {object}
+    */
     var touchEnd = function(self,animate){
         self.list.removeClass('hover');
         self.list.eq(self.index - 1).addClass('hover');
@@ -17,9 +27,14 @@
         animate.reset(self.id, {left:'-'+self.width*self.index+ 'px'});
         animate.start();
     }
-    var Banner = function(id,options){
-        this.id = id.attr('id');
-        this.el = id;
+    /**
+    *   @class Banner
+    *   @param dom {dom object}
+    *   @param options {options object}
+    */
+    var Banner = function(dom,options){
+        this.id = dom.attr('id');
+        this.el = dom;
         this.parent = this.el.parent();
         this.width = this.parent.width();
         this.options = options;
@@ -41,16 +56,13 @@
         list += '</ul>';
         this.parent.append(list);
         this.list = $('#ul_'+this.id).children();
-        this._init();
         this.index = 1;
         this.max = this.options.list;
         this.animate = new jsMorph();
+        this.resize();
+        this.begin()
     }
     Banner.prototype = {
-        _init:function(){
-            this._resize();
-            this._playout();
-        },
         create:function(){
             var render = template.compile(this.options.template);
             var createHTML = render({data:this.options.data});
@@ -58,7 +70,7 @@
             this.child = this.el.children();  
             this.child.css({width:this.width});
         },
-        _delegate:function(){
+        delegate:function(){
             var self = this;
             // this.el.delegate('div.banner','touchstart',function(){
             //     clearTimeout(self.end);
@@ -80,14 +92,14 @@
                 clearTimeout(self.star);
                 if(!bool){
                     bool = true;
-                    self._touchPlay();
+                    self.touchbegin();
                     var time = setTimeout(function(){
                         bool = false;
                     },300);
                 }                
             });
         },
-        _resize:function(){
+        resize:function(){
             var self = this;
             var bool = false;
             window.addEventListener('resize',function(){
@@ -99,21 +111,21 @@
                     self.width = self.parent.width();
                     self.el.css({width:self.width*self.options.list});
                     self.child.css({width:self.width});
-                    self._playout();
+                    self.begin();
                     var time = setTimeout(function(){
                         bool = false;
                     },300);
                 }
             });
-            this._delegate();
+            this.delegate();
         },
-        _playout:function(){
+        begin:function(){
             var self = this;
             this.play = setTimeout(function(){
-                self.start(self.animate);
+                self.startAdd(self.animate);
             },4000);
         },
-        _touchPlay:function(){
+        touchbegin:function(){
             var self = this;
             if(this.index === this.max){
                 this.index--;
@@ -128,9 +140,9 @@
             }else{
                 touchStart(self,self.animate);
             }
-            this._playout();            
+            this.begin();            
         },
-        start:function(animate){
+        startAdd:function(animate){
             var self = this;
             if(this.index === this.max){
               this.index--;
@@ -141,7 +153,7 @@
             }
             touchStart(self,self.animate);
             this.star = setTimeout(function(){
-               self.start(animate);
+               self.startAdd(animate);
             },4000);
         },
         endMinus:function(animate){
@@ -149,7 +161,7 @@
             if(this.index === 0){
                 this.index++;
                 this.star = setTimeout(function(){
-                  self.start(animate);
+                  self.startAdd(animate);
                 },4000);
                 return false;
             }
@@ -163,7 +175,6 @@
         var $this = $(this);
         var data = $this.data('banner');
         if(!data) $this.data('banner',(data = new Banner($this,options)));
-        if(typeof options === 'string') data[options].call($this);
     }
     $.fn.banner.Constructor = Banner;
 })(Zepto);
