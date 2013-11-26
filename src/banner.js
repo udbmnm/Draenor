@@ -40,12 +40,14 @@
         this.options = options;
         this.el.css({width:this.width*this.options.list});
         if(this.options.template === undefined) { 
-            this.child = this.el.children();         
+            this.child = this.el.children();
+            this.height = this.el.find('img').height()/this.options.list;
+            this.parent.css({height:this.height});
             this.child.css({width:this.width});
         }else{
             this.create();
         }
-        var list = '<ul id="ul_'+this.id+'" class="banner_btn">';
+        var list = '<ul id="ul_'+this.id+'" class="banner_scroll">';
         for(var i = 0;i<this.options.list;i++){
             if(i === 0){
                list += '<li class="hover" data-list="'+(i+1)+'"></li>';
@@ -67,7 +69,9 @@
             var render = template.compile(this.options.template);
             var createHTML = render({data:this.options.data});
             this.el.append(createHTML);
-            this.child = this.el.children();  
+            this.child = this.el.children();
+            this.height = this.el.find('img').height()/this.options.list;
+            this.parent.css({height:this.height});  
             this.child.css({width:this.width});
         },
         delegate:function(){
@@ -109,6 +113,9 @@
                     clearTimeout(self.end);
                     clearTimeout(self.star);
                     self.width = self.parent.width();
+                    console.log(self.el.find('img').height());
+                    self.height = self.el.find('img').height();
+                    self.parent.css({height:self.height});  
                     self.el.css({width:self.width*self.options.list});
                     self.child.css({width:self.width});
                     self.begin();

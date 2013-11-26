@@ -15,35 +15,40 @@
 		<script type="text/javascript" src="../zepto/zepto.js"></script>
 		<script type="text/javascript" src="../template.js"></script>
 		<style type="text/css">
-			.head{
+			.banner_ioc{
+				width: 100%;
 				position: relative;
-				width: 100%;
-				height: 400px;
 				overflow: hidden;
+				margin-bottom: 20px;
 			}
-			.banner{
+			.banner_ioc .banner_action{
 				position: absolute;
-				overflow: hidden;
 			}
-			.banner_img{
-				float: left;
-				height: 350px;
-			}
-			.banner_img img{
+			.banner_ioc .banner{
 				width: 100%;
+				float: left;
+			}
+			.banner_ioc .banner img{
+				width: 100%;
+			}
+			.banner_scroll li{
+				width: 30%;
+			}
+			.banner_scroll li.hover{
+				width: 40%;
 			}
 		</style>
 	</head>
 	<body>
-		<header class="head">
-			<div id="banner" class="banner">
-				<div class="banner_img">
+		<header class="banner_ioc">
+			<div id="banner" class="banner_action">
+				<div class="banner">
 					<img src="http://content.battlenet.com.cn/wow/media/screenshots/transmog/draenei/draenei-female071-large.jpg">
 				</div>
-				<div class="banner_img">
+				<div class="banner">
 					<img src="http://content.battlenet.com.cn/wow/media/screenshots/transmog/draenei/draenei-female072-large.jpg">
 				</div>
-				<div class="banner_img">
+				<div class="banner">
 					<img src="http://content.battlenet.com.cn/wow/media/screenshots/transmog/draenei/draenei-female073-large.jpg">
 				</div>
 			</div>
