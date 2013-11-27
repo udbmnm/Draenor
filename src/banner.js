@@ -62,7 +62,7 @@
         this.max = this.options.list;
         this.animate = new jsMorph();
         this.resize();
-        this.begin()
+        // this.begin()
     }
     Banner.prototype = {
         create:function(){
@@ -76,32 +76,39 @@
         },
         delegate:function(){
             var self = this;
-            // this.el.delegate('div.banner','touchstart',function(){
-            //     clearTimeout(self.end);
-            //     clearTimeout(self.star);
-            // });
-            // this.el.delegate('div.banner','touchend',function(){
-
-            // });
-            // this.el.delegate('div.banner','touchmove',function(){
-
-            // });
-            /**
-            * mobile 不需要按钮，用于测试
-            */
             var bool = false;
-            $('#ul_'+this.id).delegate('li','click',function(){
+            this.el.delegate('div.banner','touchstart',function(){
                 clearTimeout(self.play);
                 clearTimeout(self.end);
                 clearTimeout(self.star);
+            });
+            // this.el.delegate('div.banner','touchend',function(){
+                
+            // });
+            this.el.delegate('div.banner','touchmove',function(){
                 if(!bool){
                     bool = true;
                     self.touchbegin();
                     var time = setTimeout(function(){
                         bool = false;
                     },300);
-                }                
+                }
             });
+            /**
+            * mobile 不需要按钮，用于测试
+            */            
+            // $('#ul_'+this.id).delegate('li','click',function(){
+            //     clearTimeout(self.play);
+            //     clearTimeout(self.end);
+            //     clearTimeout(self.star);
+            //     if(!bool){
+            //         bool = true;
+            //         self.touchbegin();
+            //         var time = setTimeout(function(){
+            //             bool = false;
+            //         },300);
+            //     }                
+            // });
         },
         resize:function(){
             var self = this;

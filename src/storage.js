@@ -84,15 +84,19 @@
     }
     /**
     *   @method remove
-    *   @param bool {boolean or string}
+    *   @param bool {boolean}
     */
     var remove = function(key,bool){
         if(bool){
-            session.remove(key);
+            session.removeItem(key);
         }else{
-            storage.remove(key);
+            storage.removeItem(key);
         }
     }
+    /**
+    *   @method clear
+    *   @param bool {boolean}
+    */
     var clear = function(bool){
         if(bool){
             session.clear();
@@ -108,6 +112,15 @@
         postMessage:postMessage,
         remove:remove,
         clear:clear
+    }
+    /**
+    *   @method parseUrl
+    */
+    $.parseUrl = function(){
+        var HREF = PATH.locaHref,regx = /(\?|\#)(.+)/,bool;
+        var ROUE = regx.exec(HREF);
+        ROUE !== null ? bool = decodeURI(ROUE[2]) : bool = false;
+        return bool;
     }
     /**
     *   @class Guid
@@ -211,5 +224,8 @@
         return new Guid(g);
     }
     var GUID = NewGuid();
+    /**
+    *   @method guid
+    */
     $.guid = GUID;
 })(Zepto);
