@@ -11,13 +11,3 @@
 # 程序运行条件 #
 
 在页面中，先引入zepto.js，raindow.css，再依次引入其他插件模块。
-
-# API #
-
-## dialog ##
-
-## storage ##
-
-## browser ##
-
-## verification ##
