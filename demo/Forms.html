@@ -21,52 +21,45 @@
 				margin-bottom: 10px;
 			}
 		</style>
-		<link rel="stylesheet" type="text/css" href="../style/rainbow.css">
+		<link rel="stylesheet" type="text/css" href="../style/draenor.css">
 		<script type="text/javascript" src="../zepto/zepto.js"></script>
 	</head>
 	<body>
 		<section class="content">
 			<header id="forms" class="forms">
 				<div class="input-box">
-					<input type="text" maxlength="30" name="username" placeholder="username" data-error="">
+					<input type="text" maxlength="30" name="username" placeholder="请输入Email或手机号码" data-key="FormsName">
 				</div>
 				<div class="input-box" style="margin-top:5px;">
-					<input type="password" maxlength="20" name="password" placeholder="password">
+					<input type="password" maxlength="20" name="password" placeholder="密码" data-key="FormsPassword">
 				</div>
 				<div class="input-box" style="margin-top:5px;">
-					<input type="tel">
+					<input type="tel" placeholder="请输入手机号码" name="telNumber" data-key="FormsTelNumber">
 				</div>
-				<div class="input-box" style="margin-top:5px;">
-					<input type="email">
-				</div>
-				<div style="margin-top:5px;">
-					<input type="search" class="search" id="search" name="search" placeholder="搜索">
-				</div>
+				<!--<div class="input-box" style="margin-top:5px;">
+					<input type="email" placeholder="请输入E-mail" name="myEmail" data-key="FormsmyEmail">
+				</div>-->
 			</header>
 			<footer style="padding:10px;">
 				<button id="verification" class="button">verification</button>
 			</footer>
 		</section>
+		<script type="text/javascript" src="../src/storage.js"></script>
 		<script type="text/javascript" src="../src/verification.js"></script>
 		<script type="text/javascript">
-			$('#forms').verification({
-				regx:/^[1-9]\d*$/,
-				focus:true
-			});
-			var error = $('#error');
-			var _error = function(msg){
-		        error.html('<h1>'+msg+'</h1>');
-		        error.show();
-		        setTimeout(function(){
-		           error.hide();
-		        },2000);
-			}
-			$('#verification').on('click',function(){
-				$('#forms').verification('trigger',function(bool,input,tacit){
-					if(!bool){
-						_error('账户密码错误')
-					}
-				});
+			var forms = $('#forms');
+			forms.verification({
+				submitElements:'#verification',
+				type:'tap',
+				defaultmessage:'表单为空',
+				affairFun:function(info,event){
+					console.log(info);
+				},
+				regx:[
+					{'desc':true},
+					{'请输入正整数':/^[1-9]\d*$/},
+					{'desc':true}
+				]
 			});
 		</script>
 	</body>

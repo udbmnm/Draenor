@@ -11,28 +11,31 @@
           var el = elements.eq(i);
           var value = el.val();
           if(value.length === 0){
-              $.error.show('账户或密码不能为空');
+              $.error.show(self.defaultmessage);
               setTimeout(function(){$.error.hide();},2000);
               bool = false;
               break;
           }
           if(regx !== undefined){
-              var x = regx[i];
-              if(x !== undefined){
-                  for(var c in x){
-                      if(!x[c].test(value)){
-                        $.error.show(c);
-                        setTimeout(function(){$.error.hide();},2000);
-                        bool = false;
-                        break;
-                      }
-                      bool = true;
-                  }
-                  if(!bool){
-                     break;
-                  }
-              }
+            var x = regx[i];
+            if(x !== undefined){
+                if(!x.desc){
+                    for(var c in x){
+                        if(!x[c].test(value)){
+                            $.error.show(c);
+                            setTimeout(function(){$.error.hide();},2000);
+                            bool = false;
+                            break;
+                        }
+                        bool = true;
+                    }
+                    if(!bool){
+                      break;
+                    }
+                }
+            }
           }
+          bool = true;
           muster[el.attr('data-key')] = value; 
       }
       if(bool){
@@ -48,9 +51,10 @@
   var Verification = function(dom,options){
       this.dom = dom,this.id = dom.attr('id'),this.options = options;
       this.input = this.dom.find('input');
-      var type = 'tap' || this.options.type;
+      var type = this.options.type ||'tap';
       var submitE = document.querySelector(this.options.submitElements);
       var Self = this;
+      this.defaultmessage = options.defaultmessage || '账户或密码不能为空';
       $.Hammer(submitE).on(type,function(event){
           trigger(this,Self,event);
       });
