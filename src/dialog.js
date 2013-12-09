@@ -1,5 +1,5 @@
 /*
-* mobile ui dialog 依赖 zepto.js  作者：wenren
+* mobile ui dialog 对话框 依赖 zepto.js  作者：wenren
 */
 (function($){
   var body = $('body');

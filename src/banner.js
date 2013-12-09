@@ -35,6 +35,7 @@
     var Banner = function(dom,options){
         this.id = dom.attr('id');
         this.el = dom;
+        console.log(this.el);
         this.parent = this.el.parent();
         this.width = this.parent.width();
         this.options = options;
@@ -61,8 +62,7 @@
         this.index = 1;
         this.max = this.options.list;
         this.animate = new jsMorph();
-        this.resize();
-        // this.begin()
+        this.begin()
     }
     Banner.prototype = {
         create:function(){
@@ -82,10 +82,7 @@
                 clearTimeout(self.end);
                 clearTimeout(self.star);
             });
-            // this.el.delegate('div.banner','touchend',function(){
-                
-            // });
-            this.el.delegate('div.banner','touchmove',function(){
+            $.Hammer(this.el[0]).on('swipeleft',function(){
                 if(!bool){
                     bool = true;
                     self.touchbegin();
@@ -110,34 +107,12 @@
             //     }                
             // });
         },
-        resize:function(){
-            var self = this;
-            var bool = false;
-            window.addEventListener('resize',function(){
-                if(!bool){
-                    bool = true;
-                    clearTimeout(self.play);
-                    clearTimeout(self.end);
-                    clearTimeout(self.star);
-                    self.width = self.parent.width();
-                    console.log(self.el.find('img').height());
-                    self.height = self.el.find('img').height();
-                    self.parent.css({height:self.height});  
-                    self.el.css({width:self.width*self.options.list});
-                    self.child.css({width:self.width});
-                    self.begin();
-                    var time = setTimeout(function(){
-                        bool = false;
-                    },300);
-                }
-            });
-            this.delegate();
-        },
         begin:function(){
             var self = this;
             this.play = setTimeout(function(){
                 self.startAdd(self.animate);
             },4000);
+            this.delegate();
         },
         touchbegin:function(){
             var self = this;

@@ -1,5 +1,5 @@
 /*
-* mobile ui browser 依赖 zepto.js  作者：wenren
+* mobile ui browser 浏览器判断与网页抓取正则 依赖 zepto.js  作者：wenren
 */
 (function($){
   $.browser = {
