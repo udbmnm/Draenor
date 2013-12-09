@@ -3,6 +3,7 @@
 */
 (function($){
   var bool = true,muster = {}
+  //验证
   var trigger = function(target,self,event){
       var elements = self.input;
       var regx = self.options.regx;
