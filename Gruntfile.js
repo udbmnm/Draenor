@@ -23,7 +23,7 @@ module.exports = function(grunt){
                     banner:'<%=banner%>'
                 },
                 files:[
-                    {src:['src/*.js'],dest:'build/rainbow.js'}
+                    {src:['src/*.js'],dest:'build/draenor.js'}
                 ]
             }
         },
@@ -33,7 +33,7 @@ module.exports = function(grunt){
                     banner:'<%=banner%>'
                 },
                 files:[
-                    {src:['style/rainbow.css'],dest:'build/rainbow.min.css'}
+                    {src:['style/draenor.css'],dest:'build/draenor.min.css'}
                 ]
             }
         },
@@ -51,8 +51,8 @@ module.exports = function(grunt){
                         ext: '.min.js',
                     },
                     {
-                        src:'build/rainbow.js',
-                        dest:'build/rainbow.min.js'
+                        src:'build/draenor.js',
+                        dest:'build/draenor.min.js'
                     }
                 ]
             }
