@@ -68,6 +68,33 @@
             var expdate = new Date(); 
             expdate.setTime(expdate.getTime() - (86400 * 1000 * 1)); 
             $.cookie.setCookie(name, "", expdate); 
+        },
+        /**
+        *   @method isExists
+        *   @param name {string}
+        */
+        isExists:function(name){
+            var cookie = $.cookie.getCookie(name);
+            try{
+                if($.type(cookie) === 'string'){
+                    if(cookie.length !== 0 ){
+                        return true;
+                    }else{
+                        return false;
+                    }
+                }else{
+                    return false;
+                }
+            }catch(e){
+                console.info('error' + e);
+            }
         }
+    }
+    /**
+    *   @method gotoPage
+    *   @param path {string}
+    */
+    $.gotoPage = function(path){
+        window.location.href = path;
     }
 })(Zepto);

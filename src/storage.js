@@ -117,7 +117,7 @@
     *   @method parseUrl
     */
     $.parseUrl = function(){
-        var HREF = PATH.locaHref,regx = /(\?|\#)(.+)/,bool;
+        var HREF = window.location.href,regx = /(\?|\#)(.+)/,bool;
         var ROUE = regx.exec(HREF);
         ROUE !== null ? bool = decodeURI(ROUE[2]) : bool = false;
         return bool;
@@ -228,4 +228,31 @@
     *   @method guid
     */
     $.guid = GUID;
+    /**
+    *   @method error
+    */
+    var error = function(){
+        var body = $('body');
+        var html = '<div id="error_backdrop" class="modal-backdrop error_backdrop" style="display:none;"></div>' + '<div class="error" id="error_parent" style="display:none;"><h1 id="error_content"></h1></div>';
+        body.append(html);
+        var e_backdrop = $('#error_backdrop'),e_content = $('#error_content'),e_c_parent = $('#error_parent');
+        return {
+            /**
+            *   @method show
+            */
+            show:function(str){
+                e_backdrop.show();
+                e_content.html(str);
+                e_c_parent.show();
+            },
+            /**
+            *   @method hide
+            */
+            hide:function(){
+                e_backdrop.hide();
+                e_c_parent.hide();
+            }
+        }
+    }
+   $.error = error();
 })(Zepto);
