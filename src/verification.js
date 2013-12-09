@@ -5,33 +5,36 @@
   var bool = true,muster = {}
   //验证
   var trigger = function(target,self,event){
-      var elements = self.input;
-      var regx = self.options.regx;
-      elements.forEach(function(v,i){
+      var elements = self.input,regx = self.options.regx;
+      var i = 0,len = elements.length;
+      for(;i<len;i++){
           var el = elements.eq(i);
           var value = el.val();
           if(value.length === 0){
               $.error.show('账户或密码不能为空');
               setTimeout(function(){$.error.hide();},2000);
               bool = false;
-              return false;
+              break;
           }
-          if($.type(regx)==='object'){
-              for(var x in regx){
-                  if(!regx[x].test(value)){
-                      $.error.show(x);
-                      setTimeout(function(){$.error.hide();},2000);
-                      bool = false;
-                      break;
+          if(regx !== undefined){
+              var x = regx[i];
+              if(x !== undefined){
+                  for(var c in x){
+                      if(!x[c].test(value)){
+                        $.error.show(c);
+                        setTimeout(function(){$.error.hide();},2000);
+                        bool = false;
+                        break;
+                      }
+                      bool = true;
+                  }
+                  if(!bool){
+                     break;
                   }
               }
-              if(!bool){
-                  return false;
-              }
           }
-          bool = true;
-          muster[el.attr('data-key')] = value;
-      });
+          muster[el.attr('data-key')] = value; 
+      }
       if(bool){
           self.options.affairFun.call(target,muster,event);
       }
