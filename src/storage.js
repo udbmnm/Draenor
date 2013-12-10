@@ -249,8 +249,10 @@
             *   @method hide
             */
             hide:function(){
-                e_backdrop.hide();
-                e_c_parent.hide();
+                setTimeout(function(){
+                    e_backdrop.hide();
+                    e_c_parent.hide();
+                },2000);
             }
         }
     }
