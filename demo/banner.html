@@ -13,7 +13,7 @@
 		<link rel="stylesheet" type="text/css" href="../style/reset-min.css">
 		<link rel="stylesheet" type="text/css" href="../style/draenor.css">
 		<script type="text/javascript" src="../zepto/zepto.js"></script>
-		<script type="text/javascript" src="../template.js"></script>
+		<script type="text/javascript" src="../zepto/template.js"></script>
 		<style type="text/css">
 			.banner_ioc{
 				width: 100%;
@@ -32,10 +32,10 @@
 				width: 100%;
 			}
 			.banner_scroll li{
-				width: 30%;
+				width: 50%;
 			}
 			.banner_scroll li.hover{
-				width: 40%;
+				width: 50%;
 			}
 		</style>
 	</head>
@@ -43,22 +43,17 @@
 		<header class="banner_ioc">
 			<div id="banner" class="banner_action">
 				<div class="banner">
-					<img src="http://content.battlenet.com.cn/wow/media/screenshots/transmog/draenei/draenei-female071-large.jpg">
+					<img src="img/banner01.jpg">
 				</div>
 				<div class="banner">
-					<img src="http://content.battlenet.com.cn/wow/media/screenshots/transmog/draenei/draenei-female072-large.jpg">
-				</div>
-				<div class="banner">
-					<img src="http://content.battlenet.com.cn/wow/media/screenshots/transmog/draenei/draenei-female073-large.jpg">
+					<img src="img/banner02.jpg">
 				</div>
 			</div>
 		</header>
 		<script type="text/javascript" src="../src/banner.js"></script>
 		<script type="text/javascript" src="../src/jsMorph-0.5.0.js"></script>
 		<script type="text/javascript">
-			$('#banner').banner({
-				list:3
-			});
+			$('#banner').banner({list:2});
 		</script>
 	</body>
 </html>
