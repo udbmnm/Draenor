@@ -23,7 +23,7 @@
                     for(var c in x){
                         if(!x[c].test(value)){
                             $.error.show(c);
-                            setTimeout(function(){$.error.hide();},2000);
+                            $.error.hide();
                             bool = false;
                             break;
                         }
