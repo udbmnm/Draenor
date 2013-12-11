@@ -52,10 +52,10 @@
       this.dom = dom,this.id = dom.attr('id'),this.options = options;
       this.input = this.dom.find('input');
       var type = this.options.type ||'tap';
-      var submitE = document.querySelector(this.options.submitElements);
+      var submitE = $(this.options.submitElements);
       var Self = this;
       this.defaultmessage = options.defaultmessage || '账户或密码不能为空';
-      $.Hammer(submitE).on(type,function(event){
+      submitE.touch(type,function(event){
           trigger(this,Self,event);
       });
   }

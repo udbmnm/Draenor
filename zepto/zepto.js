@@ -1956,10 +1956,7 @@ window.$ === undefined && (window.$ = Zepto)
 })(Zepto)
 
 ;(function($){
-  var Hammer = function(element, options) {
-    return new Hammer.Instance(element, options || {});
-  };
-
+  var Hammer = function(){};
   // default settings
   Hammer.defaults = {
     // add styles and attributes to the element to prevent the browser from doing
@@ -2071,6 +2068,7 @@ window.$ === undefined && (window.$ = Zepto)
      * @param iterator
      */
     each: function(obj, iterator, context) {
+      // console.log(obj);
       // native forEach on arrays
       if ("forEach" in obj) {
         obj.forEach(iterator, context);
@@ -2277,8 +2275,6 @@ window.$ === undefined && (window.$ = Zepto)
     }
   }
   };
-
-
   /**
    * create new hammer instance
    * all methods should return the instance itself, so it is chainable.
@@ -2289,38 +2285,29 @@ window.$ === undefined && (window.$ = Zepto)
    */
   Hammer.Instance = function(element, options) {
     var self = this;
-
     // setup HammerJS window events and register all gestures
     // this also sets up the default options
     setup();
-
     this.element = element;
-
     // start/stop detection option
     this.enabled = true;
-
     // merge options
     this.options = Hammer.utils.extend(
       Hammer.utils.extend({}, Hammer.defaults),
       options || {});
-
     // add some css to the element to prevent the browser from doing its native behavoir
     if(this.options.stop_browser_behavior) {
       Hammer.utils.stopDefaultBrowserBehavior(this.element, this.options.stop_browser_behavior);
     }
-
     // start detection on touchstart
     Hammer.event.onTouch(element, Hammer.EVENT_START, function(ev) {
       if(self.enabled) {
         Hammer.detection.startDetect(self, ev);
       }
     });
-
     // return instance
     return this;
   };
-
-
   Hammer.Instance.prototype = {
     /**
      * bind events to the instance
@@ -2330,13 +2317,12 @@ window.$ === undefined && (window.$ = Zepto)
      */
     on: function onEvent(gesture, handler) {
       var gestures = gesture.split(' ');
+      // console.log(gestures);
       Hammer.utils.each(gestures, function(gesture) {
         this.element.addEventListener(gesture, handler, false);
       }, this);
       return this;
     },
-
-
     /**
      * unbind events to the instance
      * @param   {String}      gesture
@@ -2350,8 +2336,6 @@ window.$ === undefined && (window.$ = Zepto)
       }, this);
       return this;
     },
-
-
     /**
      * trigger gesture event
      * @param   {String}      gesture
@@ -2379,8 +2363,6 @@ window.$ === undefined && (window.$ = Zepto)
       element.dispatchEvent(event);
       return this;
     },
-
-
     /**
      * enable of disable hammer.js detection
      * @param   {Boolean}   state
@@ -2391,8 +2373,6 @@ window.$ === undefined && (window.$ = Zepto)
       return this;
     }
   };
-
-
   /**
    * this holds the last move event,
    * used to fix empty touchend issue
@@ -2400,22 +2380,16 @@ window.$ === undefined && (window.$ = Zepto)
    * @type {Object}
    */
   var last_move_event = null;
-
-
   /**
    * when the mouse is hold down, this is true
    * @type {Boolean}
    */
   var enable_detect = false;
-
-
   /**
    * when touch events have been fired, this is true
    * @type {Boolean}
    */
   var touch_triggered = false;
-
-
   Hammer.event = {
     /**
      * simple addEventListener
@@ -2429,8 +2403,6 @@ window.$ === undefined && (window.$ = Zepto)
         element.addEventListener(type, handler, false);
       });
     },
-
-
     /**
      * touch events with mouse fallback
      * @param   {HTMLElement}   element
@@ -2439,7 +2411,6 @@ window.$ === undefined && (window.$ = Zepto)
      */
     onTouch: function onTouch(element, eventType, handler) {
       var self = this;
-
       this.bindDom(element, Hammer.EVENT_TYPES[eventType], function bindDomOnTouch(ev) {
         var sourceEventType = ev.type.toLowerCase();
 
@@ -2909,8 +2880,6 @@ window.$ === undefined && (window.$ = Zepto)
       return this.gestures;
     }
   };
-
-
   /**
    * Drag
    * Move with x fingers (default 1) around on the page. Blocking the scrolling when
@@ -3302,7 +3271,24 @@ window.$ === undefined && (window.$ = Zepto)
       }
     }
   };
-  $.Hammer = Hammer;
+  $.fn.touch = function(type,options){
+      var cache = this.data('touch');
+      if(!cache){
+          this.data('touch',(cache = new Hammer.Instance(this[0], options || {})));
+          // console.log(cache);
+          cache.on(type,options);
+      }else{
+          cache.on(type,options);
+      }
+  }
+  $.fn.touch.Constructor = $.touch;
+  $.fn.untouch = function(type,options){
+      var cache = this.data('touch');
+      if(cache){
+          cache.off(type,options);
+      }
+  }
+  $.fn.untouch.Constructor = $.untouch;
 })(Zepto)
 
 ;(function($){
