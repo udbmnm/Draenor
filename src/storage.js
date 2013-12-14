@@ -125,6 +125,10 @@
         }
         return bool;
     }
+    /**
+    *   @method stringify
+    *   @param obj {object json}
+    */
     $.stringify = function(obj){
         return JSON.stringify(obj);
     }
@@ -193,12 +197,13 @@
                 arr.push("0");
             }
         }
-        /*
-        根据所提供的格式说明符，返回此 Guid 实例值的 String 表示形式。
-        N  32 位： xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-        D  由连字符分隔的 32 位数字 xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx 
-        B  括在大括号中、由连字符分隔的 32 位数字：{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} 
-        P  括在圆括号中、由连字符分隔的 32 位数字：(xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx) 
+        /**
+            根据所提供的格式说明符，返回此 Guid 实例值的 String 表示形式。
+            N  32 位： xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+            D  由连字符分隔的 32 位数字 xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx 
+            B  括在大括号中、由连字符分隔的 32 位数字：{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx} 
+            P  括在圆括号中、由连字符分隔的 32 位数字：(xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+            @method ToStringWithFormat  
         */
         function ToStringWithFormat(arr, format){
             switch(format){
@@ -245,6 +250,7 @@
         return {
             /**
             *   @method show
+            *   @param str {string}
             */
             show:function(str){
                 e_backdrop.show();

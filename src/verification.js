@@ -55,6 +55,8 @@
       var submitE = $(this.options.submitElements);
       var Self = this;
       this.defaultmessage = options.defaultmessage || '账户或密码不能为空';
+      // console.log(submitE);
+      // console.log(type);
       submitE.on(type,function(event){
           trigger(this,Self,event);
       });
