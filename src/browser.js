@@ -2,6 +2,7 @@
 * mobile ui browser 浏览器判断与网页抓取正则 依赖 zepto.js  作者：wenren
 */
 (function($){
+  //os
   $.browser = {
       IE: !!(window.attachEvent && navigator.userAgent.indexOf('Opera') === -1),
       Opera: navigator.userAgent.indexOf('Opera') > -1,

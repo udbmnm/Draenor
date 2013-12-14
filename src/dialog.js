@@ -2,6 +2,7 @@
 * mobile ui dialog 对话框 依赖 zepto.js  作者：wenren
 */
 (function($){
+  //遮罩
   var body = $('body');
   var drop = '<div id="backdrop" class="modal-backdrop fade in" style="display:none;"></div>';  
   body.append(drop);
