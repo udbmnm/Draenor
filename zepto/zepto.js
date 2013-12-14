@@ -1,8 +1,7 @@
-/* Zepto 1.1.0 - zepto detect event ajax form fx assets data selector ie - zeptojs.com/license */
+/* Zepto 1.1.2 - zepto event ajax form ie - zeptojs.com/license */
 
 
 var Zepto = (function() {
-  var _isIE = /MSIE/.test(navigator.userAgent);
   var undefined, key, $, classList, emptyArray = [], slice = emptyArray.slice, filter = emptyArray.filter,
     document = window.document,
     elementDisplay = {}, classCache = {},
@@ -11,6 +10,7 @@ var Zepto = (function() {
     singleTagRE = /^<(\w+)\s*\/?>(?:<\/\1>|)$/,
     tagExpanderRE = /<(?!area|br|col|embed|hr|img|input|link|meta|param)(([\w:]+)[^>]*)\/>/ig,
     rootNodeRE = /^(?:body|html)$/i,
+    capitalRE = /([A-Z])/g,
 
     // special attributes that should be get/set via method calls
     methodAttributes = ['val', 'css', 'html', 'text', 'data', 'width', 'height', 'offset'],
@@ -27,15 +27,29 @@ var Zepto = (function() {
     readyRE = /complete|loaded|interactive/,
     classSelectorRE = /^\.([\w-]+)$/,
     idSelectorRE = /^#([\w-]*)$/,
-    tagSelectorRE = /^[\w-]+$/,
+    simpleSelectorRE = /^[\w-]*$/,
     class2type = {},
     toString = class2type.toString,
     zepto = {},
     camelize, uniq,
-    tempParent = document.createElement('div')
+    tempParent = document.createElement('div'),
+    propMap = {
+      'tabindex': 'tabIndex',
+      'readonly': 'readOnly',
+      'for': 'htmlFor',
+      'class': 'className',
+      'maxlength': 'maxLength',
+      'cellspacing': 'cellSpacing',
+      'cellpadding': 'cellPadding',
+      'rowspan': 'rowSpan',
+      'colspan': 'colSpan',
+      'usemap': 'useMap',
+      'frameborder': 'frameBorder',
+      'contenteditable': 'contentEditable'
+    }
 
   zepto.matches = function(element, selector) {
-    if (!element || element.nodeType !== 1) return false
+    if (!selector || !element || element.nodeType !== 1) return false
     var matchesSelector = element.webkitMatchesSelector || element.mozMatchesSelector ||
                           element.oMatchesSelector || element.matchesSelector
     if (matchesSelector) return matchesSelector.call(element, selector)
@@ -158,14 +172,28 @@ var Zepto = (function() {
   // special cases).
   // This method can be overriden in plugins.
   zepto.init = function(selector, context) {
+    var dom
     // If nothing given, return an empty Zepto collection
     if (!selector) return zepto.Z()
+    // Optimize for string selectors
+    else if (typeof selector == 'string') {
+      selector = selector.trim()
+      // If it's a html fragment, create nodes from it
+      // Note: In both Chrome 21 and Firefox 15, DOM error 12
+      // is thrown if the fragment doesn't begin with <
+      if (selector[0] == '<' && fragmentRE.test(selector))
+        dom = zepto.fragment(selector, RegExp.$1, context), selector = null
+      // If there's a context, create a collection on that context first, and select
+      // nodes from there
+      else if (context !== undefined) return $(context).find(selector)
+      // If it's a CSS selector, use it to select nodes.
+      else dom = zepto.qsa(document, selector)
+    }
     // If a function is given, call it when the DOM is ready
     else if (isFunction(selector)) return $(document).ready(selector)
-    // If a Zepto collection is given, juts return it
+    // If a Zepto collection is given, just return it
     else if (zepto.isZ(selector)) return selector
     else {
-      var dom
       // normalize array if an array of nodes is given
       if (isArray(selector)) dom = compact(selector)
       // Wrap DOM nodes.
@@ -179,9 +207,9 @@ var Zepto = (function() {
       else if (context !== undefined) return $(context).find(selector)
       // And last but no least, if it's a CSS selector, use it to select nodes.
       else dom = zepto.qsa(document, selector)
-      // create a new Zepto collection from the nodes found
-      return zepto.Z(dom, selector)
     }
+    // create a new Zepto collection from the nodes found
+    return zepto.Z(dom, selector)
   }
 
   // `$` will be the base `Zepto` object. When calling this
@@ -220,14 +248,19 @@ var Zepto = (function() {
   // uses `document.querySelectorAll` and optimizes for some special cases, like `#id`.
   // This method can be overriden in plugins.
   zepto.qsa = function(element, selector){
-    var found
-    return (isDocument(element) && idSelectorRE.test(selector)) ?
-      ( (found = element.getElementById(RegExp.$1)) ? [found] : [] ) :
+    var found,
+        maybeID = selector[0] == '#',
+        maybeClass = !maybeID && selector[0] == '.',
+        nameOnly = maybeID || maybeClass ? selector.slice(1) : selector, // Ensure that a 1 char tag name still gets checked
+        isSimple = simpleSelectorRE.test(nameOnly)
+    return (isDocument(element) && isSimple && maybeID) ?
+      ( (found = element.getElementById(nameOnly)) ? [found] : [] ) :
       (element.nodeType !== 1 && element.nodeType !== 9) ? [] :
       slice.call(
-        classSelectorRE.test(selector) ? element.getElementsByClassName(RegExp.$1) :
-        tagSelectorRE.test(selector) ? element.getElementsByTagName(selector) :
-        element.querySelectorAll(selector)
+        isSimple && !maybeID ?
+          maybeClass ? element.getElementsByClassName(nameOnly) : // If it's simple, it could be a class
+          element.getElementsByTagName(selector) : // Or a tag
+          element.querySelectorAll(selector) // Or it's not simple, and we need to query all
       )
   }
 
@@ -261,6 +294,7 @@ var Zepto = (function() {
   // "null"  => null
   // "42"    => 42
   // "42.5"  => 42.5
+  // "08"    => "08"
   // JSON    => parse if valid
   // String  => self
   function deserializeValue(value) {
@@ -270,7 +304,7 @@ var Zepto = (function() {
         value == "true" ||
         ( value == "false" ? false :
           value == "null" ? null :
-          !isNaN(num = Number(value)) ? num :
+          !/^0/.test(value) && !isNaN(num = Number(value)) ? num :
           /^[\[\{]/.test(value) ? $.parseJSON(value) :
           value )
         : value
@@ -366,7 +400,9 @@ var Zepto = (function() {
     },
 
     ready: function(callback){
-      if (readyRE.test(document.readyState)) callback($)
+      // need to check if document.body exists for IE as that browser reports
+      // document ready when it hasn't yet created the body element
+      if (readyRE.test(document.readyState) && document.body) callback($)
       else document.addEventListener('DOMContentLoaded', function(){ callback($) }, false)
       return this
     },
@@ -577,6 +613,7 @@ var Zepto = (function() {
       return this.each(function(){ this.nodeType === 1 && setAttribute(this, name) })
     },
     prop: function(name, value){
+      name = propMap[name] || name
       return (value === undefined) ?
         (this[0] && this[0][name]) :
         this.each(function(idx){
@@ -584,13 +621,13 @@ var Zepto = (function() {
         })
     },
     data: function(name, value){
-      var data = this.attr('data-' + dasherize(name), value)
+      var data = this.attr('data-' + name.replace(capitalRE, '-$1').toLowerCase(), value)
       return data !== null ? deserializeValue(data) : undefined
     },
     val: function(value){
       return arguments.length === 0 ?
         (this[0] && (this[0].multiple ?
-           $(this[0]).find('option').filter(function(o){ return this.selected }).pluck('value') :
+           $(this[0]).find('option').filter(function(){ return this.selected }).pluck('value') :
            this[0].value)
         ) :
         this.each(function(idx){
@@ -620,27 +657,6 @@ var Zepto = (function() {
       }
     },
     css: function(property, value){
-      /**
-       * addisonxue hacked
-       * add MSIE Css3 support
-       * modify -webkit- prefix with -ms-
-       */
-      if(_isIE){
-        if (typeof property == 'string' && property.indexOf('-webkit-') == 0) {
-          property = '-ms-' + property.substring(8);
-        } else if (typeof property == 'object') {
-          var _pro = {};
-          for ( var p in property) {
-            if (p.indexOf('-webkit-') == 0) {
-              _pro['-ms-' + p.substring(8)] = property[p];
-            } else {
-              _pro[p] = property[p];
-            }
-          }
-          property = _pro;
-        }
-      }
-      
       if (arguments.length < 2) {
         var element = this[0], computedStyle = getComputedStyle(element, '')
         if(!element) return
@@ -675,11 +691,13 @@ var Zepto = (function() {
       return element ? this.indexOf($(element)[0]) : this.parent().children().indexOf(this[0])
     },
     hasClass: function(name){
+      if (!name) return false
       return emptyArray.some.call(this, function(el){
         return this.test(className(el))
       }, classRE(name))
     },
     addClass: function(name){
+      if (!name) return this
       return this.each(function(idx){
         classList = []
         var cls = className(this), newName = funcArg(this, name, idx, cls)
@@ -700,6 +718,7 @@ var Zepto = (function() {
       })
     },
     toggleClass: function(name, when){
+      if (!name) return this
       return this.each(function(idx){
         var $this = $(this), names = funcArg(this, name, idx, className(this))
         names.split(/\s+/g).forEach(function(klass){
@@ -715,6 +734,14 @@ var Zepto = (function() {
       return this.each(hasScrollTop ?
         function(){ this.scrollTop = value } :
         function(){ this.scrollTo(this.scrollX, value) })
+    },
+    scrollLeft: function(value){
+      if (!this.length) return
+      var hasScrollLeft = 'scrollLeft' in this[0]
+      if (value === undefined) return hasScrollLeft ? this[0].scrollLeft : this[0].pageXOffset
+      return this.each(hasScrollLeft ?
+        function(){ this.scrollLeft = value } :
+        function(){ this.scrollTo(value, this.scrollY) })
     },
     position: function() {
       if (!this.length) return
@@ -834,86 +861,20 @@ var Zepto = (function() {
   return $
 })()
 
-window.Zepto = Zepto
-window.$ === undefined && (window.$ = Zepto)
+window.Zepto = Zepto;
+window.$ === undefined && (window.$ = Zepto);
 
+//event
 ;(function($){
-  function detect(ua){
-    var os = this.os = {}, browser = this.browser = {},
-      webkit = ua.match(/WebKit\/([\d.]+)/),
-      android = ua.match(/(Android);?\s+([\d.]+)?/),
-      ipad = ua.match(/(iPad).*OS\s([\d_]+)/),
-      ipod = ua.match(/(iPod)(.*OS\s([\d_]+))?/),
-      iphone = !ipad && ua.match(/(iPhone\sOS)\s([\d_]+)/),
-      webos = ua.match(/(webOS|hpwOS)[\s\/]([\d.]+)/),
-      touchpad = webos && ua.match(/TouchPad/),
-      kindle = ua.match(/Kindle\/([\d.]+)/),
-      silk = ua.match(/Silk\/([\d._]+)/),
-      blackberry = ua.match(/(BlackBerry).*Version\/([\d.]+)/),
-      bb10 = ua.match(/(BB10).*Version\/([\d.]+)/),
-      rimtabletos = ua.match(/(RIM\sTablet\sOS)\s([\d.]+)/),
-      playbook = ua.match(/PlayBook/),
-      chrome = ua.match(/Chrome\/([\d.]+)/) || ua.match(/CriOS\/([\d.]+)/),
-      firefox = ua.match(/Firefox\/([\d.]+)/),
-      ie = ua.match(/MSIE ([\d.]+)/),
-      safari = webkit && ua.match(/Mobile\//) && !chrome,
-      webview = ua.match(/(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/) && !chrome,
-      ie = ua.match(/MSIE\s([\d.]+)/)
-
-    // Todo: clean this up with a better OS/browser seperation:
-    // - discern (more) between multiple browsers on android
-    // - decide if kindle fire in silk mode is android or not
-    // - Firefox on Android doesn't specify the Android version
-    // - possibly devide in os, device and browser hashes
-
-    if (browser.webkit = !!webkit) browser.version = webkit[1]
-
-    if (android) os.android = true, os.version = android[2]
-    if (iphone && !ipod) os.ios = os.iphone = true, os.version = iphone[2].replace(/_/g, '.')
-    if (ipad) os.ios = os.ipad = true, os.version = ipad[2].replace(/_/g, '.')
-    if (ipod) os.ios = os.ipod = true, os.version = ipod[3] ? ipod[3].replace(/_/g, '.') : null
-    if (webos) os.webos = true, os.version = webos[2]
-    if (touchpad) os.touchpad = true
-    if (blackberry) os.blackberry = true, os.version = blackberry[2]
-    if (bb10) os.bb10 = true, os.version = bb10[2]
-    if (rimtabletos) os.rimtabletos = true, os.version = rimtabletos[2]
-    if (playbook) browser.playbook = true
-    if (kindle) os.kindle = true, os.version = kindle[1]
-    if (silk) browser.silk = true, browser.version = silk[1]
-    if (!silk && os.android && ua.match(/Kindle Fire/)) browser.silk = true
-    if (chrome) browser.chrome = true, browser.version = chrome[1]
-    if (firefox) browser.firefox = true, browser.version = firefox[1]
-    if (ie) browser.ie = true, browser.version = ie[1]
-    if (safari && (ua.match(/Safari/) || !!os.ios)) browser.safari = true
-    if (webview) browser.webview = true
-    if (ie) browser.ie = true, browser.version = ie[1]
-
-    os.tablet = !!(ipad || playbook || (android && !ua.match(/Mobile/)) ||
-      (firefox && ua.match(/Tablet/)) || (ie && !ua.match(/Phone/) && ua.match(/Touch/)))
-    os.phone  = !!(!os.tablet && !os.ipod && (android || iphone || webos || blackberry || bb10 ||
-      (chrome && ua.match(/Android/)) || (chrome && ua.match(/CriOS\/([\d.]+)/)) ||
-      (firefox && ua.match(/Mobile/)) || (ie && ua.match(/Touch/))))
-  }
-
-  detect.call($, navigator.userAgent)
-  // make available to unit tests
-  $.__detect = detect
-
-})(Zepto)
-
-;(function($){
-  var $$ = $.zepto.qsa, handlers = {}, _zid = 1, specialEvents = {}, hover = {
-    mouseenter : 'mouseover',
-    mouseleave : 'mouseout',
-    /**
-     * addisonxue hacked
-     * add MSIE msPointer event support
-     */
-    touchstart : window.navigator.msPointerEnabled ? 'MSPointerDown' : 'touchstart',
-    touchmove : window.navigator.msPointerEnabled ? 'MSPointerMove' : 'touchmove',
-    touchend : window.navigator.msPointerEnabled ? 'MSPointerCancel' : 'touchend',
-    touchcancel : window.navigator.msPointerEnabled ? 'MSPointerCancel' : 'touchcancel'
-  }
+  var $$ = $.zepto.qsa, _zid = 1, undefined,
+      slice = Array.prototype.slice,
+      isFunction = $.isFunction,
+      isString = function(obj){ return typeof obj == 'string' },
+      handlers = {},
+      specialEvents={},
+      focusinSupported = 'onfocusin' in window,
+      focus = { focus: 'focusin', blur: 'focusout' },
+      hover = { mouseenter: 'mouseover', mouseleave: 'mouseout' }
 
   specialEvents.click = specialEvents.mousedown = specialEvents.mouseup = specialEvents.mousemove = 'MouseEvents'
 
@@ -939,24 +900,20 @@ window.$ === undefined && (window.$ = Zepto)
     return new RegExp('(?:^| )' + ns.replace(' ', ' .* ?') + '(?: |$)')
   }
 
-  function eachEvent(events, fn, iterator){
-    if ($.type(events) != "string") $.each(events, iterator)
-    else events.split(/\s/).forEach(function(type){ iterator(type, fn) })
-  }
-
   function eventCapture(handler, captureSetting) {
     return handler.del &&
-      (handler.e == 'focus' || handler.e == 'blur') ||
+      (!focusinSupported && (handler.e in focus)) ||
       !!captureSetting
   }
 
   function realEvent(type) {
-    return hover[type] || type
+    return hover[type] || (focusinSupported && focus[type]) || type
   }
 
-  function add(element, events, fn, selector, getDelegate, capture){
+  function add(element, events, fn, data, selector, delegator, capture){
     var id = zid(element), set = (handlers[id] || (handlers[id] = []))
-    eachEvent(events, fn, function(event, fn){
+    events.split(/\s/).forEach(function(event){
+      if (event == 'ready') return $(document).ready(fn)
       var handler   = parse(event)
       handler.fn    = fn
       handler.sel   = selector
@@ -966,10 +923,13 @@ window.$ === undefined && (window.$ = Zepto)
         if (!related || (related !== this && !$.contains(this, related)))
           return handler.fn.apply(this, arguments)
       }
-      handler.del   = getDelegate && getDelegate(fn, event)
-      var callback  = handler.del || fn
+      handler.del   = delegator
+      var callback  = delegator || fn
       handler.proxy = function(e){
-        var result = callback.apply(element, [e].concat(e.data))
+        e = compatible(e)
+        if (e.isImmediatePropagationStopped()) return
+        e.data = data
+        var result = callback.apply(element, e._args == undefined ? [e] : [e].concat(e._args))
         if (result === false) e.preventDefault(), e.stopPropagation()
         return result
       }
@@ -981,7 +941,7 @@ window.$ === undefined && (window.$ = Zepto)
   }
   function remove(element, events, fn, selector, capture){
     var id = zid(element)
-    eachEvent(events || '', fn, function(event, fn){
+    ;(events || '').split(/\s/).forEach(function(event){
       findHandlers(element, event, fn, selector).forEach(function(handler){
         delete handlers[id][handler.i]
       if ('removeEventListener' in element)
@@ -993,91 +953,70 @@ window.$ === undefined && (window.$ = Zepto)
   $.event = { add: add, remove: remove }
 
   $.proxy = function(fn, context) {
-    if ($.isFunction(fn)) {
+    if (isFunction(fn)) {
       var proxyFn = function(){ return fn.apply(context, arguments) }
       proxyFn._zid = zid(fn)
       return proxyFn
-    } else if (typeof context == 'string') {
+    } else if (isString(context)) {
       return $.proxy(fn[context], fn)
     } else {
       throw new TypeError("expected function")
     }
   }
 
-  $.fn.bind = function(event, callback){
-    return this.each(function(){
-      add(this, event, callback)
-    })
+  $.fn.bind = function(event, data, callback){
+    return this.on(event, data, callback)
   }
   $.fn.unbind = function(event, callback){
-    return this.each(function(){
-      remove(this, event, callback)
-    })
+    return this.off(event, callback)
   }
-  $.fn.one = function(event, callback){
-    return this.each(function(i, element){
-      add(this, event, callback, null, function(fn, type){
-        return function(){
-          var result = fn.apply(element, arguments)
-          remove(element, type, fn)
-          return result
-        }
-      })
-    })
+  $.fn.one = function(event, selector, data, callback){
+    return this.on(event, selector, data, callback, 1)
   }
 
   var returnTrue = function(){return true},
       returnFalse = function(){return false},
-      ignoreProperties = /^([A-Z]|layer[XY]$)/,
+      ignoreProperties = /^([A-Z]|returnValue$|layer[XY]$)/,
       eventMethods = {
         preventDefault: 'isDefaultPrevented',
         stopImmediatePropagation: 'isImmediatePropagationStopped',
         stopPropagation: 'isPropagationStopped'
       }
+
+  function compatible(event, source) {
+    if (source || !event.isDefaultPrevented) {
+      source || (source = event)
+
+      $.each(eventMethods, function(name, predicate) {
+        var sourceMethod = source[name]
+        event[name] = function(){
+          this[predicate] = returnTrue
+          return sourceMethod && sourceMethod.apply(source, arguments)
+        }
+        event[predicate] = returnFalse
+      })
+
+      if (source.defaultPrevented !== undefined ? source.defaultPrevented :
+          'returnValue' in source ? source.returnValue === false :
+          source.getPreventDefault && source.getPreventDefault())
+        event.isDefaultPrevented = returnTrue
+    }
+    return event
+  }
+
   function createProxy(event) {
     var key, proxy = { originalEvent: event }
     for (key in event)
       if (!ignoreProperties.test(key) && event[key] !== undefined) proxy[key] = event[key]
 
-    $.each(eventMethods, function(name, predicate) {
-      proxy[name] = function(){
-        this[predicate] = returnTrue
-        return event[name].apply(event, arguments)
-      }
-      proxy[predicate] = returnFalse
-    })
-    return proxy
-  }
-
-  // emulates the 'defaultPrevented' property for browsers that have none
-  function fix(event) {
-    if (!('defaultPrevented' in event)) {
-      event.defaultPrevented = false
-      var prevent = event.preventDefault
-      event.preventDefault = function(){
-        event.defaultPrevented = true
-        prevent.call(event)
-      }
-    }
+    return compatible(proxy, event)
   }
 
   $.fn.delegate = function(selector, event, callback){
-    return this.each(function(i, element){
-      add(element, event, callback, selector, function(fn){
-        return function(e){
-          var evt, match = $(e.target).closest(selector, element).get(0)
-          if (match) {
-            evt = $.extend(createProxy(e), {currentTarget: match, liveFired: element})
-            return fn.apply(match, [evt].concat([].slice.call(arguments, 1)))
-          }
-        }
-      })
-    })
+    return this.on(event, selector, callback)
   }
   $.fn.undelegate = function(selector, event, callback){
-    return this.each(function(){
-      remove(this, event, callback, selector)
-    })
+    return this.off(event, selector, callback)
   }
 
   $.fn.live = function(event, callback){
@@ -1089,33 +1028,75 @@ window.$ === undefined && (window.$ = Zepto)
     return this
   }
 
-  $.fn.on = function(event, selector, callback){
-    return !selector || $.isFunction(selector) ?
-      this.bind(event, selector || callback) : this.delegate(selector, event, callback)
+  $.fn.on = function(event, selector, data, callback, one){
+    var autoRemove, delegator, $this = this
+    if (event && !isString(event)) {
+      $.each(event, function(type, fn){
+        $this.on(type, selector, data, fn, one)
+      })
+      return $this
+    }
+
+    if (!isString(selector) && !isFunction(callback) && callback !== false)
+      callback = data, data = selector, selector = undefined
+    if (isFunction(data) || data === false)
+      callback = data, data = undefined
+
+    if (callback === false) callback = returnFalse
+
+    return $this.each(function(_, element){
+      if (one) autoRemove = function(e){
+        remove(element, e.type, callback)
+        return callback.apply(this, arguments)
+      }
+
+      if (selector) delegator = function(e){
+        var evt, match = $(e.target).closest(selector, element).get(0)
+        if (match && match !== element) {
+          evt = $.extend(createProxy(e), {currentTarget: match, liveFired: element})
+          return (autoRemove || callback).apply(match, [evt].concat(slice.call(arguments, 1)))
+        }
+      }
+
+      add(element, event, callback, data, selector, delegator || autoRemove)
+    })
   }
   $.fn.off = function(event, selector, callback){
-    return !selector || $.isFunction(selector) ?
-      this.unbind(event, selector || callback) : this.undelegate(selector, event, callback)
+    var $this = this
+    if (event && !isString(event)) {
+      $.each(event, function(type, fn){
+        $this.off(type, selector, fn)
+      })
+      return $this
+    }
+
+    if (!isString(selector) && !isFunction(callback) && callback !== false)
+      callback = selector, selector = undefined
+
+    if (callback === false) callback = returnFalse
+
+    return $this.each(function(){
+      remove(this, event, callback, selector)
+    })
   }
 
-  $.fn.trigger = function(event, data){
-    if (typeof event == 'string' || $.isPlainObject(event)) event = $.Event(event)
-    fix(event)
-    event.data = data
+  $.fn.trigger = function(event, args){
+    event = (isString(event) || $.isPlainObject(event)) ? $.Event(event) : compatible(event)
+    event._args = args
     return this.each(function(){
       // items in the collection might not be DOM elements
       if('dispatchEvent' in this) this.dispatchEvent(event)
-      else $(this).triggerHandler(event, data)
+      else $(this).triggerHandler(event, args)
     })
   }
 
   // triggers event handlers on current element just as if an event occurred,
   // doesn't trigger an actual event, doesn't bubble
-  $.fn.triggerHandler = function(event, data){
+  $.fn.triggerHandler = function(event, args){
     var e, result
     this.each(function(i, element){
-      e = createProxy(typeof event == 'string' ? $.Event(event) : event)
-      e.data = data
+      e = createProxy(isString(event) ? $.Event(event) : event)
+      e._args = args
       e.target = element
       $.each(findHandlers(element, event.type || event), function(i, handler){
         result = handler.proxy(e)
@@ -1148,16 +1129,16 @@ window.$ === undefined && (window.$ = Zepto)
   })
 
   $.Event = function(type, props) {
-    if (typeof type != 'string') props = type, type = props.type
+    if (!isString(type)) props = type, type = props.type
     var event = document.createEvent(specialEvents[type] || 'Events'), bubbles = true
     if (props) for (var name in props) (name == 'bubbles') ? (bubbles = !!props[name]) : (event[name] = props[name])
     event.initEvent(type, bubbles, true)
-    event.isDefaultPrevented = function(){ return event.defaultPrevented }
-    return event
+    return compatible(event)
   }
 
 })(Zepto)
 
+//ajax
 ;(function($){
   var jsonpID = 0,
       document = window.document,
@@ -1174,7 +1155,7 @@ window.$ === undefined && (window.$ = Zepto)
   function triggerAndReturn(context, eventName, data) {
     var event = $.Event(eventName)
     $(context).trigger(event, data)
-    return !event.defaultPrevented
+    return !event.isDefaultPrevented()
   }
 
   // trigger an Ajax "global" event
@@ -1201,16 +1182,18 @@ window.$ === undefined && (window.$ = Zepto)
 
     triggerGlobal(settings, context, 'ajaxSend', [xhr, settings])
   }
-  function ajaxSuccess(data, xhr, settings) {
+  function ajaxSuccess(data, xhr, settings, deferred) {
     var context = settings.context, status = 'success'
     settings.success.call(context, data, status, xhr)
+    if (deferred) deferred.resolveWith(context, [data, status, xhr])
     triggerGlobal(settings, context, 'ajaxSuccess', [xhr, settings, data])
     ajaxComplete(status, xhr, settings)
   }
   // type: "timeout", "error", "abort", "parsererror"
-  function ajaxError(error, type, xhr, settings) {
+  function ajaxError(error, type, xhr, settings, deferred) {
     var context = settings.context
     settings.error.call(context, xhr, type, error)
+    if (deferred) deferred.rejectWith(context, [xhr, type, error])
     triggerGlobal(settings, context, 'ajaxError', [xhr, settings, error || type])
     ajaxComplete(type, xhr, settings)
   }
@@ -1225,45 +1208,50 @@ window.$ === undefined && (window.$ = Zepto)
   // Empty function, used as default callback
   function empty() {}
 
-  $.ajaxJSONP = function(options){
+  $.ajaxJSONP = function(options, deferred){
     if (!('type' in options)) return $.ajax(options)
 
     var _callbackName = options.jsonpCallback,
       callbackName = ($.isFunction(_callbackName) ?
         _callbackName() : _callbackName) || ('jsonp' + (++jsonpID)),
       script = document.createElement('script'),
-      cleanup = function() {
-        clearTimeout(abortTimeout)
-        $(script).remove()
-        delete window[callbackName]
-      },
-      abort = function(type){
-        cleanup()
-        // In case of manual abort or timeout, keep an empty function as callback
-        // so that the SCRIPT tag that eventually loads won't result in an error.
-        if (!type || type == 'timeout') window[callbackName] = empty
-        ajaxError(null, type || 'abort', xhr, options)
+      originalCallback = window[callbackName],
+      responseData,
+      abort = function(errorType) {
+        $(script).triggerHandler('error', errorType || 'abort')
       },
       xhr = { abort: abort }, abortTimeout
 
+    if (deferred) deferred.promise(xhr)
+
+    $(script).on('load error', function(e, errorType){
+      clearTimeout(abortTimeout)
+      $(script).off().remove()
+
+      if (e.type == 'error' || !responseData) {
+        ajaxError(null, errorType || 'error', xhr, options, deferred)
+      } else {
+        ajaxSuccess(responseData[0], xhr, options, deferred)
+      }
+
+      window[callbackName] = originalCallback
+      if (responseData && $.isFunction(originalCallback))
+        originalCallback(responseData[0])
+
+      originalCallback = responseData = undefined
+    })
+
     if (ajaxBeforeSend(xhr, options) === false) {
       abort('abort')
-      return false
+      return xhr
     }
 
-    window[callbackName] = window[callbackName] || function(data){
-      cleanup()
-      ajaxSuccess(data, xhr, options)
+    window[callbackName] = function(){
+      responseData = arguments
     }
 
-    script.onerror = function() { abort('error') }
-    
-    //add script charset support
-    if (options.charset){ script.charset = options.charset;}
-    
     script.src = options.url.replace(/=\?/, '=' + callbackName)
-    
-    $('head').append(script)
+    document.head.appendChild(script)
 
     if (options.timeout > 0) abortTimeout = setTimeout(function(){
       abort('timeout')
@@ -1292,8 +1280,9 @@ window.$ === undefined && (window.$ = Zepto)
       return new window.XMLHttpRequest()
     },
     // MIME types mapping
+    // IIS returns Javascript as "application/x-javascript"
     accepts: {
-      script: 'text/javascript, application/javascript',
+      script: 'text/javascript, application/javascript, application/x-javascript',
       json:   jsonType,
       xml:    'application/xml, text/xml',
       html:   htmlType,
@@ -1327,11 +1316,12 @@ window.$ === undefined && (window.$ = Zepto)
     if (options.processData && options.data && $.type(options.data) != "string")
       options.data = $.param(options.data, options.traditional)
     if (options.data && (!options.type || options.type.toUpperCase() == 'GET'))
-      options.url = appendQuery(options.url, options.data)
+      options.url = appendQuery(options.url, options.data), options.data = undefined
   }
 
   $.ajax = function(options){
-    var settings = $.extend({}, options || {})
+    var settings = $.extend({}, options || {}),
+        deferred = $.Deferred && $.Deferred()
     for (key in $.ajaxSettings) if (settings[key] === undefined) settings[key] = $.ajaxSettings[key]
 
     ajaxStart(settings)
@@ -1345,39 +1335,41 @@ window.$ === undefined && (window.$ = Zepto)
 
     var dataType = settings.dataType, hasPlaceholder = /=\?/.test(settings.url)
     if (dataType == 'jsonp' || hasPlaceholder) {
-      if (!hasPlaceholder){
+      if (!hasPlaceholder)
         settings.url = appendQuery(settings.url,
-          settings.jsonp ? (settings.jsonp + '=?') : settings.jsonp === false ? '' : (settings.url.indexOf('callback=') > -1 ? '' : 'callback=?'))
-        var A_callback = settings.url.match(new RegExp((settings.jsonp ? settings.jsonp : 'callback') + '=(\\w+)','i'));
-        if(A_callback && A_callback.length >= 2){
-          settings.jsonpCallback = A_callback[1];
-        }
-      }
-      return $.ajaxJSONP(settings)
+          settings.jsonp ? (settings.jsonp + '=?') : settings.jsonp === false ? '' : 'callback=?')
+      return $.ajaxJSONP(settings, deferred)
     }
 
     var mime = settings.accepts[dataType],
-        baseHeaders = { },
+        headers = { },
+        setHeader = function(name, value) { headers[name.toLowerCase()] = [name, value] },
         protocol = /^([\w-]+:)\/\//.test(settings.url) ? RegExp.$1 : window.location.protocol,
-        xhr = settings.xhr(), abortTimeout
+        xhr = settings.xhr(),
+        nativeSetHeader = xhr.setRequestHeader,
+        abortTimeout
 
-    if (!settings.crossDomain) baseHeaders['X-Requested-With'] = 'XMLHttpRequest'
-    if (mime) {
-      baseHeaders['Accept'] = mime
+    if (deferred) deferred.promise(xhr)
+
+    if (!settings.crossDomain) setHeader('X-Requested-With', 'XMLHttpRequest')
+    setHeader('Accept', mime || '*/*')
+    if (mime = settings.mimeType || mime) {
       if (mime.indexOf(',') > -1) mime = mime.split(',', 2)[0]
       xhr.overrideMimeType && xhr.overrideMimeType(mime)
     }
     if (settings.contentType || (settings.contentType !== false && settings.data && settings.type.toUpperCase() != 'GET'))
-      baseHeaders['Content-Type'] = (settings.contentType || 'application/x-www-form-urlencoded')
-    settings.headers = $.extend(baseHeaders, settings.headers || {})
+      setHeader('Content-Type', settings.contentType || 'application/x-www-form-urlencoded')
+
+    if (settings.headers) for (name in settings.headers) setHeader(name, settings.headers[name])
+    xhr.setRequestHeader = setHeader
 
     xhr.onreadystatechange = function(){
       if (xhr.readyState == 4) {
-        xhr.onreadystatechange = empty;
+        xhr.onreadystatechange = empty
         clearTimeout(abortTimeout)
         var result, error = false
         if ((xhr.status >= 200 && xhr.status < 300) || xhr.status == 304 || (xhr.status == 0 && protocol == 'file:')) {
-          dataType = dataType || mimeToDataType(xhr.getResponseHeader('content-type'))
+          dataType = dataType || mimeToDataType(settings.mimeType || xhr.getResponseHeader('content-type'))
           result = xhr.responseText
 
           try {
@@ -1387,40 +1379,33 @@ window.$ === undefined && (window.$ = Zepto)
             else if (dataType == 'json') result = blankRE.test(result) ? null : $.parseJSON(result)
           } catch (e) { error = e }
 
-          if (error) ajaxError(error, 'parsererror', xhr, settings)
-          else ajaxSuccess(result, xhr, settings)
+          if (error) ajaxError(error, 'parsererror', xhr, settings, deferred)
+          else ajaxSuccess(result, xhr, settings, deferred)
         } else {
-          ajaxError(xhr.statusText || null, xhr.status ? 'error' : 'abort', xhr, settings)
+          ajaxError(xhr.statusText || null, xhr.status ? 'error' : 'abort', xhr, settings, deferred)
         }
       }
     }
 
-    var async = 'async' in settings ? settings.async : true
-    xhr.open(settings.type, settings.url, async)
-
-    for (name in settings.headers) xhr.setRequestHeader(name, settings.headers[name])
-
     if (ajaxBeforeSend(xhr, settings) === false) {
       xhr.abort()
-      return false
+      ajaxError(null, 'abort', xhr, settings, deferred)
+      return xhr
     }
+
+    if (settings.xhrFields) for (name in settings.xhrFields) xhr[name] = settings.xhrFields[name]
+
+    var async = 'async' in settings ? settings.async : true
+    xhr.open(settings.type, settings.url, async, settings.username, settings.password)
+
+    for (name in headers) nativeSetHeader.apply(xhr, headers[name])
 
     if (settings.timeout > 0) abortTimeout = setTimeout(function(){
         xhr.onreadystatechange = empty
         xhr.abort()
-        ajaxError(null, 'timeout', xhr, settings)
+        ajaxError(null, 'timeout', xhr, settings, deferred)
       }, settings.timeout)
 
-    /**
-     * addisonxue hacked
-     * add CORS support, detail for http://www.w3.org/TR/cors/
-     */
-    if (settings.withCredentials) {
-      try{
-        xhr.withCredentials = true;
-      } catch (e) {
-      }
-    }
     // avoid sending empty string (#319)
     xhr.send(settings.data ? settings.data : null)
     return xhr
@@ -1431,7 +1416,6 @@ window.$ === undefined && (window.$ = Zepto)
     var hasData = !$.isFunction(data)
     return {
       url:      url,
-      charset:  hasData && data && data.charset ? data.charset : undefined,
       data:     hasData  ? data : undefined,
       success:  !hasData ? data : $.isFunction(success) ? success : undefined,
       dataType: hasData  ? dataType || success : success
@@ -1453,21 +1437,6 @@ window.$ === undefined && (window.$ = Zepto)
     options.dataType = 'json'
     return $.ajax(options)
   }
-  //alias to $.getJSON, but it`s a jsonp, means that accept a pure string request not include 'callback=?'
-  $.getScript = function(url, success, charset){
-    if(typeof(success) == 'string' && charset == null){
-      charset = success;
-      success = null;
-    }
-    return $.ajax({
-      url:      url,
-      type:     'GET',
-      charset:  charset,
-      data:     undefined,
-      success:  success,
-      dataType: 'jsonp'
-    })
-  }
 
   $.fn.load = function(url, data, success){
     if (!this.length) return this
@@ -1488,10 +1457,11 @@ window.$ === undefined && (window.$ = Zepto)
   var escape = encodeURIComponent
 
   function serialize(params, obj, traditional, scope){
-    var type, array = $.isArray(obj)
+    var type, array = $.isArray(obj), hash = $.isPlainObject(obj)
     $.each(obj, function(key, value) {
       type = $.type(value)
-      if (scope) key = traditional ? scope : scope + '[' + (array ? '' : key) + ']'
+      if (scope) key = traditional ? scope :
+        scope + '[' + (hash || type == 'object' || type == 'array' ? key : '') + ']'
       // handle data in serializeArray() format
       if (!scope && array) params.add(value.name, value.value)
       // recurse into nested objects
@@ -1509,7 +1479,8 @@ window.$ === undefined && (window.$ = Zepto)
   }
 })(Zepto)
 
-;(function ($) {
+//form
+;(function($){
   $.fn.serializeArray = function() {
     var result = [], el
     $([].slice.call(this.get(0).elements)).each(function(){
@@ -1539,138 +1510,14 @@ window.$ === undefined && (window.$ = Zepto)
     else if (this.length) {
       var event = $.Event('submit')
       this.eq(0).trigger(event)
-      if (!event.defaultPrevented) this.get(0).submit()
+      if (!event.isDefaultPrevented()) this.get(0).submit()
     }
     return this
   }
 
 })(Zepto)
 
-;(function($, undefined){
-  var prefix = '', eventPrefix, endEventName, endAnimationName,
-    vendors = { Webkit: 'webkit', Moz: '', O: 'o', ms: 'MS' },
-    document = window.document, testEl = document.createElement('div'),
-    supportedTransforms = /^((translate|rotate|scale)(X|Y|Z|3d)?|matrix(3d)?|perspective|skew(X|Y)?)$/i,
-    transform,
-    transitionProperty, transitionDuration, transitionTiming, transitionDelay,
-    animationName, animationDuration, animationTiming, animationDelay,
-    cssReset = {}
-
-  function dasherize(str) { return str.replace(/([a-z])([A-Z])/, '$1-$2').toLowerCase() }
-  function normalizeEvent(name) { return eventPrefix ? eventPrefix + name : name.toLowerCase() }
-
-  $.each(vendors, function(vendor, event){
-    if (testEl.style[vendor + 'TransitionProperty'] !== undefined) {
-      prefix = '-' + vendor.toLowerCase() + '-'
-      eventPrefix = event
-      return false
-    }
-  })
-
-  transform = prefix + 'transform'
-  cssReset[transitionProperty = prefix + 'transition-property'] =
-  cssReset[transitionDuration = prefix + 'transition-duration'] =
-  cssReset[transitionDelay    = prefix + 'transition-delay'] =
-  cssReset[transitionTiming   = prefix + 'transition-timing-function'] =
-  cssReset[animationName      = prefix + 'animation-name'] =
-  cssReset[animationDuration  = prefix + 'animation-duration'] =
-  cssReset[animationDelay     = prefix + 'animation-delay'] =
-  cssReset[animationTiming    = prefix + 'animation-timing-function'] = ''
-
-  $.fx = {
-    off: (eventPrefix === undefined && testEl.style.transitionProperty === undefined),
-    speeds: { _default: 400, fast: 200, slow: 600 },
-    cssPrefix: prefix,
-    transitionEnd: normalizeEvent('TransitionEnd'),
-    animationEnd: normalizeEvent('AnimationEnd')
-  }
-
-  $.fn.animate = function(properties, duration, ease, callback, delay){
-    if ($.isPlainObject(duration))
-      ease = duration.easing, callback = duration.complete, delay = duration.delay, duration = duration.duration
-    if (duration) duration = (typeof duration == 'number' ? duration :
-                    ($.fx.speeds[duration] || $.fx.speeds._default)) / 1000
-    if (delay) delay = parseFloat(delay) / 1000
-    return this.anim(properties, duration, ease, callback, delay)
-  }
-
-  $.fn.anim = function(properties, duration, ease, callback, delay){
-    /**
-     * addisonxue hacked
-     * add MSIE Css3 support
-     * modify -webkit- prefix with -ms-
-     */
-    if(/MSIE/.test(navigator.userAgent)){
-      if (typeof properties == 'string' && properties.indexOf('-webkit-') == 0) {
-        properties = '-ms-' + properties.substring(8);
-      } else if (typeof properties == 'object') {
-        var _pro = {};
-        for ( var p in properties) {
-          if (p.indexOf('-webkit-') == 0) {
-            _pro['-ms-' + p.substring(8)] = properties[p];
-          } else {
-            _pro[p] = properties[p];
-          }
-        }
-        properties = _pro;
-      }
-    }
-    
-    var key, cssValues = {}, cssProperties, transforms = '',
-        that = this, wrappedCallback, endEvent = $.fx.transitionEnd
-
-    if (duration === undefined) duration = 0.4
-    if (delay === undefined) delay = 0
-    if ($.fx.off) duration = 0
-
-    if (typeof properties == 'string') {
-      // keyframe animation
-      cssValues[animationName] = properties
-      cssValues[animationDuration] = duration + 's'
-      cssValues[animationDelay] = delay + 's'
-      cssValues[animationTiming] = (ease || 'linear')
-      endEvent = $.fx.animationEnd
-    } else {
-      cssProperties = []
-      // CSS transitions
-      for (key in properties)
-        if (supportedTransforms.test(key)) transforms += key + '(' + properties[key] + ') '
-        else cssValues[key] = properties[key], cssProperties.push(dasherize(key))
-
-      if (transforms) cssValues[transform] = transforms, cssProperties.push(transform)
-      if (duration > 0 && typeof properties === 'object') {
-        cssValues[transitionProperty] = cssProperties.join(', ')
-        cssValues[transitionDuration] = duration + 's'
-        cssValues[transitionDelay] = delay + 's'
-        cssValues[transitionTiming] = (ease || 'linear')
-      }
-    }
-
-    wrappedCallback = function(event){
-      if (typeof event !== 'undefined') {
-        if (event.target !== event.currentTarget) return // makes sure the event didn't bubble from "below"
-        $(event.target).unbind(endEvent, wrappedCallback)
-      }
-      $(this).css(cssReset)
-      callback && callback.call(this)
-    }
-    if (duration > 0) this.bind(endEvent, wrappedCallback)
-
-    // trigger page reflow so new elements can animate
-    this.size() && this.get(0).clientLeft
-
-    this.css(cssValues)
-
-    if (duration <= 0) setTimeout(function() {
-      that.each(function(){ wrappedCallback.call(this) })
-    }, 0)
-
-    return this
-  }
-
-  testEl = null
-})(Zepto)
-
+//remove
 ;(function($){
   var cache = [], timeout
 
@@ -1689,68 +1536,170 @@ window.$ === undefined && (window.$ = Zepto)
   }
 })(Zepto)
 
-;(function($) {
-  var data = {}, dataAttr = $.fn.data, camelize = $.camelCase,
-    exp = $.expando = 'Zepto' + (+new Date()), emptyArray = []
+//touch 
+;(function($){
+  var touch = {},
+    touchTimeout, tapTimeout, swipeTimeout, longTapTimeout,
+    longTapDelay = 750,
+    gesture
 
-  // Get value from node:
-  // 1. first try key as given,
-  // 2. then try camelized key,
-  // 3. fall back to reading "data-*" attribute.
-  function getData(node, name) {
-    var id = node[exp], store = id && data[id]
-    if (name === undefined) return store || setData(node)
-    else {
-      if (store) {
-        if (name in store) return store[name]
-        var camelName = camelize(name)
-        if (camelName in store) return store[camelName]
-      }
-      return dataAttr.call($(node), name)
+  function swipeDirection(x1, x2, y1, y2) {
+    return Math.abs(x1 - x2) >=
+      Math.abs(y1 - y2) ? (x1 - x2 > 0 ? 'Left' : 'Right') : (y1 - y2 > 0 ? 'Up' : 'Down')
+  }
+
+  function longTap() {
+    longTapTimeout = null
+    if (touch.last) {
+      touch.el.trigger('longTap')
+      touch = {}
     }
   }
 
-  // Store value under camelized key on node
-  function setData(node, name, value) {
-    var id = node[exp] || (node[exp] = ++$.uuid),
-      store = data[id] || (data[id] = attributeData(node))
-    if (name !== undefined) store[camelize(name)] = value
-    return store
+  function cancelLongTap() {
+    if (longTapTimeout) clearTimeout(longTapTimeout)
+    longTapTimeout = null
   }
 
-  // Read all "data-*" attributes from a node
-  function attributeData(node) {
-    var store = {}
-    $.each(node.attributes || emptyArray, function(i, attr){
-      if (attr.name.indexOf('data-') == 0)
-        store[camelize(attr.name.replace('data-', ''))] =
-          $.zepto.deserializeValue(attr.value)
-    })
-    return store
+  function cancelAll() {
+    if (touchTimeout) clearTimeout(touchTimeout)
+    if (tapTimeout) clearTimeout(tapTimeout)
+    if (swipeTimeout) clearTimeout(swipeTimeout)
+    if (longTapTimeout) clearTimeout(longTapTimeout)
+    touchTimeout = tapTimeout = swipeTimeout = longTapTimeout = null
+    touch = {}
   }
 
-  $.fn.data = function(name, value) {
-    return value === undefined ?
-      // set multiple values via object
-      $.isPlainObject(name) ?
-        this.each(function(i, node){
-          $.each(name, function(key, value){ setData(node, key, value) })
-        }) :
-        // get value from first element
-        this.length == 0 ? undefined : getData(this[0], name) :
-      // set value on all elements
-      this.each(function(){ setData(this, name, value) })
+  function isPrimaryTouch(event){
+    return (event.pointerType == 'touch' ||
+      event.pointerType == event.MSPOINTER_TYPE_TOUCH)
+      && event.isPrimary
   }
 
-  $.fn.removeData = function(names) {
-    if (typeof names == 'string') names = names.split(/\s+/)
-    return this.each(function(){
-      var id = this[exp], store = id && data[id]
-      if (store) $.each(names, function(){ delete store[camelize(this)] })
-    })
+  function isPointerEventType(e, type){
+    return (e.type == 'pointer'+type ||
+      e.type.toLowerCase() == 'mspointer'+type)
   }
+
+  $(document).ready(function(){
+    var now, delta, deltaX = 0, deltaY = 0, firstTouch, _isPointerType
+
+    if ('MSGesture' in window) {
+      gesture = new MSGesture()
+      gesture.target = document.body
+    }
+
+    $(document)
+      .bind('MSGestureEnd', function(e){
+        var swipeDirectionFromVelocity =
+          e.velocityX > 1 ? 'Right' : e.velocityX < -1 ? 'Left' : e.velocityY > 1 ? 'Down' : e.velocityY < -1 ? 'Up' : null;
+        if (swipeDirectionFromVelocity) {
+          touch.el.trigger('swipe')
+          touch.el.trigger('swipe'+ swipeDirectionFromVelocity)
+        }
+      })
+      .on('touchstart MSPointerDown pointerdown', function(e){
+        if((_isPointerType = isPointerEventType(e, 'down')) &&
+          !isPrimaryTouch(e)) return
+        firstTouch = _isPointerType ? e : e.touches[0]
+        if (e.touches && e.touches.length === 1 && touch.x2) {
+          // Clear out touch movement data if we have it sticking around
+          // This can occur if touchcancel doesn't fire due to preventDefault, etc.
+          touch.x2 = undefined
+          touch.y2 = undefined
+        }
+        now = Date.now()
+        delta = now - (touch.last || now)
+        touch.el = $('tagName' in firstTouch.target ?
+          firstTouch.target : firstTouch.target.parentNode)
+        touchTimeout && clearTimeout(touchTimeout)
+        touch.x1 = firstTouch.pageX
+        touch.y1 = firstTouch.pageY
+        if (delta > 0 && delta <= 250) touch.isDoubleTap = true
+        touch.last = now
+        longTapTimeout = setTimeout(longTap, longTapDelay)
+        // adds the current touch contact for IE gesture recognition
+        if (gesture && _isPointerType) gesture.addPointer(e.pointerId);
+      })
+      .on('touchmove MSPointerMove pointermove', function(e){
+        if((_isPointerType = isPointerEventType(e, 'move')) &&
+          !isPrimaryTouch(e)) return
+        firstTouch = _isPointerType ? e : e.touches[0]
+        cancelLongTap()
+        touch.x2 = firstTouch.pageX
+        touch.y2 = firstTouch.pageY
+
+        deltaX += Math.abs(touch.x1 - touch.x2)
+        deltaY += Math.abs(touch.y1 - touch.y2)
+      })
+      .on('touchend MSPointerUp pointerup', function(e){
+        if((_isPointerType = isPointerEventType(e, 'up')) &&
+          !isPrimaryTouch(e)) return
+        cancelLongTap()
+
+        // swipe
+        if ((touch.x2 && Math.abs(touch.x1 - touch.x2) > 30) ||
+            (touch.y2 && Math.abs(touch.y1 - touch.y2) > 30))
+
+          swipeTimeout = setTimeout(function() {
+            touch.el.trigger('swipe')
+            touch.el.trigger('swipe' + (swipeDirection(touch.x1, touch.x2, touch.y1, touch.y2)))
+            touch = {}
+          }, 0)
+
+        // normal tap
+        else if ('last' in touch)
+          // don't fire tap when delta position changed by more than 30 pixels,
+          // for instance when moving to a point and back to origin
+          if (deltaX < 30 && deltaY < 30) {
+            // delay by one tick so we can cancel the 'tap' event if 'scroll' fires
+            // ('tap' fires before 'scroll')
+            tapTimeout = setTimeout(function() {
+
+              // trigger universal 'tap' with the option to cancelTouch()
+              // (cancelTouch cancels processing of single vs double taps for faster 'tap' response)
+              var event = $.Event('tap')
+              event.cancelTouch = cancelAll
+              touch.el.trigger(event)
+
+              // trigger double tap immediately
+              if (touch.isDoubleTap) {
+                if (touch.el) touch.el.trigger('doubleTap')
+                touch = {}
+              }
+
+              // trigger single tap after 250ms of inactivity
+              else {
+                touchTimeout = setTimeout(function(){
+                  touchTimeout = null
+                  if (touch.el) touch.el.trigger('singleTap')
+                  touch = {}
+                }, 250)
+              }
+            }, 0)
+          } else {
+            touch = {}
+          }
+          deltaX = deltaY = 0
+
+      })
+      // when the browser window loses focus,
+      // for example when a modal dialog is shown,
+      // cancel all ongoing events
+      .on('touchcancel MSPointerCancel pointercancel', cancelAll)
+
+    // scrolling the window indicates intention of the user
+    // to scroll, not tap or swipe, so cancel all ongoing events
+    $(window).on('scroll', cancelAll)
+  })
+
+  ;['swipe', 'swipeLeft', 'swipeRight', 'swipeUp', 'swipeDown',
+    'doubleTap', 'tap', 'singleTap', 'longTap'].forEach(function(eventName){
+    $.fn[eventName] = function(callback){ return this.on(eventName, callback) }
+  })
 })(Zepto)
 
+//select
 ;(function($){
   var zepto = $.zepto, oldQsa = zepto.qsa, oldMatches = zepto.matches
 
@@ -1833,18 +1782,629 @@ window.$ === undefined && (window.$ = Zepto)
   }
 })(Zepto)
 
+//data
 ;(function($){
-  /*
-  Riot.js 0.9.4 | moot.it/riotjs | @license MIT
-  (c) 2013 Tero Piirainen, Moot Inc and other contributors.
- */
+  var data = {}, dataAttr = $.fn.data, camelize = $.camelCase,
+    exp = $.expando = 'Zepto' + (+new Date()), emptyArray = []
+
+  // Get value from node:
+  // 1. first try key as given,
+  // 2. then try camelized key,
+  // 3. fall back to reading "data-*" attribute.
+  function getData(node, name) {
+    var id = node[exp], store = id && data[id]
+    if (name === undefined) return store || setData(node)
+    else {
+      if (store) {
+        if (name in store) return store[name]
+        var camelName = camelize(name)
+        if (camelName in store) return store[camelName]
+      }
+      return dataAttr.call($(node), name)
+    }
+  }
+
+  // Store value under camelized key on node
+  function setData(node, name, value) {
+    var id = node[exp] || (node[exp] = ++$.uuid),
+      store = data[id] || (data[id] = attributeData(node))
+    if (name !== undefined) store[camelize(name)] = value
+    return store
+  }
+
+  // Read all "data-*" attributes from a node
+  function attributeData(node) {
+    var store = {}
+    $.each(node.attributes || emptyArray, function(i, attr){
+      if (attr.name.indexOf('data-') == 0)
+        store[camelize(attr.name.replace('data-', ''))] =
+          $.zepto.deserializeValue(attr.value)
+    })
+    return store
+  }
+
+  $.fn.data = function(name, value) {
+    return value === undefined ?
+      // set multiple values via object
+      $.isPlainObject(name) ?
+        this.each(function(i, node){
+          $.each(name, function(key, value){ setData(node, key, value) })
+        }) :
+        // get value from first element
+        this.length == 0 ? undefined : getData(this[0], name) :
+      // set value on all elements
+      this.each(function(){ setData(this, name, value) })
+  }
+
+  $.fn.removeData = function(names) {
+    if (typeof names == 'string') names = names.split(/\s+/)
+    return this.each(function(){
+      var id = this[exp], store = id && data[id]
+      if (store) $.each(names || store, function(key){
+        delete store[names ? camelize(this) : key]
+      })
+    })
+  }
+
+  // Generate extended `remove` and `empty` functions
+  ;['remove', 'empty'].forEach(function(methodName){
+    var origFn = $.fn[methodName]
+    $.fn[methodName] = function() {
+      var elements = this.find('*')
+      if (methodName === 'remove') elements = elements.add(this)
+      elements.removeData()
+      return origFn.call(this)
+    }
+  })
+})(Zepto)
+
+//os
+;(function($){
+  function detect(ua){
+    var os = this.os = {}, browser = this.browser = {},
+      webkit = ua.match(/Web[kK]it[\/]{0,1}([\d.]+)/),
+      android = ua.match(/(Android);?[\s\/]+([\d.]+)?/),
+      ipad = ua.match(/(iPad).*OS\s([\d_]+)/),
+      ipod = ua.match(/(iPod)(.*OS\s([\d_]+))?/),
+      iphone = !ipad && ua.match(/(iPhone\sOS)\s([\d_]+)/),
+      webos = ua.match(/(webOS|hpwOS)[\s\/]([\d.]+)/),
+      touchpad = webos && ua.match(/TouchPad/),
+      kindle = ua.match(/Kindle\/([\d.]+)/),
+      silk = ua.match(/Silk\/([\d._]+)/),
+      blackberry = ua.match(/(BlackBerry).*Version\/([\d.]+)/),
+      bb10 = ua.match(/(BB10).*Version\/([\d.]+)/),
+      rimtabletos = ua.match(/(RIM\sTablet\sOS)\s([\d.]+)/),
+      playbook = ua.match(/PlayBook/),
+      chrome = ua.match(/Chrome\/([\d.]+)/) || ua.match(/CriOS\/([\d.]+)/),
+      firefox = ua.match(/Firefox\/([\d.]+)/),
+      ie = ua.match(/MSIE ([\d.]+)/),
+      safari = webkit && ua.match(/Mobile\//) && !chrome,
+      webview = ua.match(/(iPhone|iPod|iPad).*AppleWebKit(?!.*Safari)/) && !chrome,
+      ie = ua.match(/MSIE\s([\d.]+)/)
+
+    // Todo: clean this up with a better OS/browser seperation:
+    // - discern (more) between multiple browsers on android
+    // - decide if kindle fire in silk mode is android or not
+    // - Firefox on Android doesn't specify the Android version
+    // - possibly devide in os, device and browser hashes
+
+    if (browser.webkit = !!webkit) browser.version = webkit[1]
+
+    if (android) os.android = true, os.version = android[2]
+    if (iphone && !ipod) os.ios = os.iphone = true, os.version = iphone[2].replace(/_/g, '.')
+    if (ipad) os.ios = os.ipad = true, os.version = ipad[2].replace(/_/g, '.')
+    if (ipod) os.ios = os.ipod = true, os.version = ipod[3] ? ipod[3].replace(/_/g, '.') : null
+    if (webos) os.webos = true, os.version = webos[2]
+    if (touchpad) os.touchpad = true
+    if (blackberry) os.blackberry = true, os.version = blackberry[2]
+    if (bb10) os.bb10 = true, os.version = bb10[2]
+    if (rimtabletos) os.rimtabletos = true, os.version = rimtabletos[2]
+    if (playbook) browser.playbook = true
+    if (kindle) os.kindle = true, os.version = kindle[1]
+    if (silk) browser.silk = true, browser.version = silk[1]
+    if (!silk && os.android && ua.match(/Kindle Fire/)) browser.silk = true
+    if (chrome) browser.chrome = true, browser.version = chrome[1]
+    if (firefox) browser.firefox = true, browser.version = firefox[1]
+    if (ie) browser.ie = true, browser.version = ie[1]
+    if (safari && (ua.match(/Safari/) || !!os.ios)) browser.safari = true
+    if (webview) browser.webview = true
+    if (ie) browser.ie = true, browser.version = ie[1]
+
+    os.tablet = !!(ipad || playbook || (android && !ua.match(/Mobile/)) ||
+      (firefox && ua.match(/Tablet/)) || (ie && !ua.match(/Phone/) && ua.match(/Touch/)))
+    os.phone  = !!(!os.tablet && !os.ipod && (android || iphone || webos || blackberry || bb10 ||
+      (chrome && ua.match(/Android/)) || (chrome && ua.match(/CriOS\/([\d.]+)/)) ||
+      (firefox && ua.match(/Mobile/)) || (ie && ua.match(/Touch/))))
+  }
+
+  detect.call($, navigator.userAgent)
+  // make available to unit tests
+  $.__detect = detect
+
+})(Zepto)
+
+//fx_method
+;(function($, undefined){
+  var document = window.document, docElem = document.documentElement,
+    origShow = $.fn.show, origHide = $.fn.hide, origToggle = $.fn.toggle
+
+  function anim(el, speed, opacity, scale, callback) {
+    if (typeof speed == 'function' && !callback) callback = speed, speed = undefined
+    var props = { opacity: opacity }
+    if (scale) {
+      props.scale = scale
+      el.css($.fx.cssPrefix + 'transform-origin', '0 0')
+    }
+    return el.animate(props, speed, null, callback)
+  }
+
+  function hide(el, speed, scale, callback) {
+    return anim(el, speed, 0, scale, function(){
+      origHide.call($(this))
+      callback && callback.call(this)
+    })
+  }
+
+  $.fn.show = function(speed, callback) {
+    origShow.call(this)
+    if (speed === undefined) speed = 0
+    else this.css('opacity', 0)
+    return anim(this, speed, 1, '1,1', callback)
+  }
+
+  $.fn.hide = function(speed, callback) {
+    if (speed === undefined) return origHide.call(this)
+    else return hide(this, speed, '0,0', callback)
+  }
+
+  $.fn.toggle = function(speed, callback) {
+    if (speed === undefined || typeof speed == 'boolean')
+      return origToggle.call(this, speed)
+    else return this.each(function(){
+      var el = $(this)
+      el[el.css('display') == 'none' ? 'show' : 'hide'](speed, callback)
+    })
+  }
+
+  $.fn.fadeTo = function(speed, opacity, callback) {
+    return anim(this, speed, opacity, null, callback)
+  }
+
+  $.fn.fadeIn = function(speed, callback) {
+    var target = this.css('opacity')
+    if (target > 0) this.css('opacity', 0)
+    else target = 1
+    return origShow.call(this).fadeTo(speed, target, callback)
+  }
+
+  $.fn.fadeOut = function(speed, callback) {
+    return hide(this, speed, null, callback)
+  }
+
+  $.fn.fadeToggle = function(speed, callback) {
+    return this.each(function(){
+      var el = $(this)
+      el[
+        (el.css('opacity') == 0 || el.css('display') == 'none') ? 'fadeIn' : 'fadeOut'
+      ](speed, callback)
+    })
+  }
+
+})(Zepto)
+
+//callback
+;(function($){
+  // Create a collection of callbacks to be fired in a sequence, with configurable behaviour
+  // Option flags:
+  //   - once: Callbacks fired at most one time.
+  //   - memory: Remember the most recent context and arguments
+  //   - stopOnFalse: Cease iterating over callback list
+  //   - unique: Permit adding at most one instance of the same callback
+  $.Callbacks = function(options) {
+    options = $.extend({}, options)
+
+    var memory, // Last fire value (for non-forgettable lists)
+        fired,  // Flag to know if list was already fired
+        firing, // Flag to know if list is currently firing
+        firingStart, // First callback to fire (used internally by add and fireWith)
+        firingLength, // End of the loop when firing
+        firingIndex, // Index of currently firing callback (modified by remove if needed)
+        list = [], // Actual callback list
+        stack = !options.once && [], // Stack of fire calls for repeatable lists
+        fire = function(data) {
+          memory = options.memory && data
+          fired = true
+          firingIndex = firingStart || 0
+          firingStart = 0
+          firingLength = list.length
+          firing = true
+          for ( ; list && firingIndex < firingLength ; ++firingIndex ) {
+            if (list[firingIndex].apply(data[0], data[1]) === false && options.stopOnFalse) {
+              memory = false
+              break
+            }
+          }
+          firing = false
+          if (list) {
+            if (stack) stack.length && fire(stack.shift())
+            else if (memory) list.length = 0
+            else Callbacks.disable()
+          }
+        },
+
+        Callbacks = {
+          add: function() {
+            if (list) {
+              var start = list.length,
+                  add = function(args) {
+                    $.each(args, function(_, arg){
+                      if (typeof arg === "function") {
+                        if (!options.unique || !Callbacks.has(arg)) list.push(arg)
+                      }
+                      else if (arg && arg.length && typeof arg !== 'string') add(arg)
+                    })
+                  }
+              add(arguments)
+              if (firing) firingLength = list.length
+              else if (memory) {
+                firingStart = start
+                fire(memory)
+              }
+            }
+            return this
+          },
+          remove: function() {
+            if (list) {
+              $.each(arguments, function(_, arg){
+                var index
+                while ((index = $.inArray(arg, list, index)) > -1) {
+                  list.splice(index, 1)
+                  // Handle firing indexes
+                  if (firing) {
+                    if (index <= firingLength) --firingLength
+                    if (index <= firingIndex) --firingIndex
+                  }
+                }
+              })
+            }
+            return this
+          },
+          has: function(fn) {
+            return !!(list && (fn ? $.inArray(fn, list) > -1 : list.length))
+          },
+          empty: function() {
+            firingLength = list.length = 0
+            return this
+          },
+          disable: function() {
+            list = stack = memory = undefined
+            return this
+          },
+          disabled: function() {
+            return !list
+          },
+          lock: function() {
+            stack = undefined;
+            if (!memory) Callbacks.disable()
+            return this
+          },
+          locked: function() {
+            return !stack
+          },
+          fireWith: function(context, args) {
+            if (list && (!fired || stack)) {
+              args = args || []
+              args = [context, args.slice ? args.slice() : args]
+              if (firing) stack.push(args)
+              else fire(args)
+            }
+            return this
+          },
+          fire: function() {
+            return Callbacks.fireWith(this, arguments)
+          },
+          fired: function() {
+            return !!fired
+          }
+        }
+
+    return Callbacks
+  }
+})(Zepto)
+
+//deferred
+;(function($){
+  var slice = Array.prototype.slice
+
+  function Deferred(func) {
+    var tuples = [
+          // action, add listener, listener list, final state
+          [ "resolve", "done", $.Callbacks({once:1, memory:1}), "resolved" ],
+          [ "reject", "fail", $.Callbacks({once:1, memory:1}), "rejected" ],
+          [ "notify", "progress", $.Callbacks({memory:1}) ]
+        ],
+        state = "pending",
+        promise = {
+          state: function() {
+            return state
+          },
+          always: function() {
+            deferred.done(arguments).fail(arguments)
+            return this
+          },
+          then: function(/* fnDone [, fnFailed [, fnProgress]] */) {
+            var fns = arguments
+            return Deferred(function(defer){
+              $.each(tuples, function(i, tuple){
+                var fn = $.isFunction(fns[i]) && fns[i]
+                deferred[tuple[1]](function(){
+                  var returned = fn && fn.apply(this, arguments)
+                  if (returned && $.isFunction(returned.promise)) {
+                    returned.promise()
+                      .done(defer.resolve)
+                      .fail(defer.reject)
+                      .progress(defer.notify)
+                  } else {
+                    var context = this === promise ? defer.promise() : this,
+                        values = fn ? [returned] : arguments
+                    defer[tuple[0] + "With"](context, values)
+                  }
+                })
+              })
+              fns = null
+            }).promise()
+          },
+
+          promise: function(obj) {
+            return obj != null ? $.extend( obj, promise ) : promise
+          }
+        },
+        deferred = {}
+
+    $.each(tuples, function(i, tuple){
+      var list = tuple[2],
+          stateString = tuple[3]
+
+      promise[tuple[1]] = list.add
+
+      if (stateString) {
+        list.add(function(){
+          state = stateString
+        }, tuples[i^1][2].disable, tuples[2][2].lock)
+      }
+
+      deferred[tuple[0]] = function(){
+        deferred[tuple[0] + "With"](this === deferred ? promise : this, arguments)
+        return this
+      }
+      deferred[tuple[0] + "With"] = list.fireWith
+    })
+
+    promise.promise(deferred)
+    if (func) func.call(deferred, deferred)
+    return deferred
+  }
+
+  $.when = function(sub) {
+    var resolveValues = slice.call(arguments),
+        len = resolveValues.length,
+        i = 0,
+        remain = len !== 1 || (sub && $.isFunction(sub.promise)) ? len : 0,
+        deferred = remain === 1 ? sub : Deferred(),
+        progressValues, progressContexts, resolveContexts,
+        updateFn = function(i, ctx, val){
+          return function(value){
+            ctx[i] = this
+            val[i] = arguments.length > 1 ? slice.call(arguments) : value
+            if (val === progressValues) {
+              deferred.notifyWith(ctx, val)
+            } else if (!(--remain)) {
+              deferred.resolveWith(ctx, val)
+            }
+          }
+        }
+
+    if (len > 1) {
+      progressValues = new Array(len)
+      progressContexts = new Array(len)
+      resolveContexts = new Array(len)
+      for ( ; i < len; ++i ) {
+        if (resolveValues[i] && $.isFunction(resolveValues[i].promise)) {
+          resolveValues[i].promise()
+            .done(updateFn(i, resolveContexts, resolveValues))
+            .fail(deferred.reject)
+            .progress(updateFn(i, progressContexts, progressValues))
+        } else {
+          --remain
+        }
+      }
+    }
+    if (!remain) deferred.resolveWith(resolveContexts, resolveValues)
+    return deferred.promise()
+  }
+
+  $.Deferred = Deferred
+})(Zepto)
+
+//fx
+;(function($, undefined){
+  var prefix = '', eventPrefix, endEventName, endAnimationName,
+    vendors = { Webkit: 'webkit', Moz: '', O: 'o' },
+    document = window.document, testEl = document.createElement('div'),
+    supportedTransforms = /^((translate|rotate|scale)(X|Y|Z|3d)?|matrix(3d)?|perspective|skew(X|Y)?)$/i,
+    transform,
+    transitionProperty, transitionDuration, transitionTiming, transitionDelay,
+    animationName, animationDuration, animationTiming, animationDelay,
+    cssReset = {}
+
+  function dasherize(str) { return str.replace(/([a-z])([A-Z])/, '$1-$2').toLowerCase() }
+  function normalizeEvent(name) { return eventPrefix ? eventPrefix + name : name.toLowerCase() }
+
+  $.each(vendors, function(vendor, event){
+    if (testEl.style[vendor + 'TransitionProperty'] !== undefined) {
+      prefix = '-' + vendor.toLowerCase() + '-'
+      eventPrefix = event
+      return false
+    }
+  })
+
+  transform = prefix + 'transform'
+  cssReset[transitionProperty = prefix + 'transition-property'] =
+  cssReset[transitionDuration = prefix + 'transition-duration'] =
+  cssReset[transitionDelay    = prefix + 'transition-delay'] =
+  cssReset[transitionTiming   = prefix + 'transition-timing-function'] =
+  cssReset[animationName      = prefix + 'animation-name'] =
+  cssReset[animationDuration  = prefix + 'animation-duration'] =
+  cssReset[animationDelay     = prefix + 'animation-delay'] =
+  cssReset[animationTiming    = prefix + 'animation-timing-function'] = ''
+
+  $.fx = {
+    off: (eventPrefix === undefined && testEl.style.transitionProperty === undefined),
+    speeds: { _default: 400, fast: 200, slow: 600 },
+    cssPrefix: prefix,
+    transitionEnd: normalizeEvent('TransitionEnd'),
+    animationEnd: normalizeEvent('AnimationEnd')
+  }
+
+  $.fn.animate = function(properties, duration, ease, callback, delay){
+    if ($.isFunction(duration))
+      callback = duration, ease = undefined, duration = undefined
+    if ($.isFunction(ease))
+      callback = ease, ease = undefined
+    if ($.isPlainObject(duration))
+      ease = duration.easing, callback = duration.complete, delay = duration.delay, duration = duration.duration
+    if (duration) duration = (typeof duration == 'number' ? duration :
+                    ($.fx.speeds[duration] || $.fx.speeds._default)) / 1000
+    if (delay) delay = parseFloat(delay) / 1000
+    return this.anim(properties, duration, ease, callback, delay)
+  }
+
+  $.fn.anim = function(properties, duration, ease, callback, delay){
+    var key, cssValues = {}, cssProperties, transforms = '',
+        that = this, wrappedCallback, endEvent = $.fx.transitionEnd,
+        fired = false
+
+    if (duration === undefined) duration = $.fx.speeds._default / 1000
+    if (delay === undefined) delay = 0
+    if ($.fx.off) duration = 0
+
+    if (typeof properties == 'string') {
+      // keyframe animation
+      cssValues[animationName] = properties
+      cssValues[animationDuration] = duration + 's'
+      cssValues[animationDelay] = delay + 's'
+      cssValues[animationTiming] = (ease || 'linear')
+      endEvent = $.fx.animationEnd
+    } else {
+      cssProperties = []
+      // CSS transitions
+      for (key in properties)
+        if (supportedTransforms.test(key)) transforms += key + '(' + properties[key] + ') '
+        else cssValues[key] = properties[key], cssProperties.push(dasherize(key))
+
+      if (transforms) cssValues[transform] = transforms, cssProperties.push(transform)
+      if (duration > 0 && typeof properties === 'object') {
+        cssValues[transitionProperty] = cssProperties.join(', ')
+        cssValues[transitionDuration] = duration + 's'
+        cssValues[transitionDelay] = delay + 's'
+        cssValues[transitionTiming] = (ease || 'linear')
+      }
+    }
+
+    wrappedCallback = function(event){
+      if (typeof event !== 'undefined') {
+        if (event.target !== event.currentTarget) return // makes sure the event didn't bubble from "below"
+        $(event.target).unbind(endEvent, wrappedCallback)
+      } else
+        $(this).unbind(endEvent, wrappedCallback) // triggered by setTimeout
+
+      fired = true
+      $(this).css(cssReset)
+      callback && callback.call(this)
+    }
+    if (duration > 0){
+      this.bind(endEvent, wrappedCallback)
+      // transitionEnd is not always firing on older Android phones
+      // so make sure it gets fired
+      setTimeout(function(){
+        if (fired) return
+        wrappedCallback.call(that)
+      }, (duration * 1000) + 25)
+    }
+
+    // trigger page reflow so new elements can animate
+    this.size() && this.get(0).clientLeft
+
+    this.css(cssValues)
+
+    if (duration <= 0) setTimeout(function() {
+      that.each(function(){ wrappedCallback.call(this) })
+    }, 0)
+
+    return this
+  }
+
+  testEl = null
+})(Zepto)
+
+//gesture
+;(function($){
+  if ($.os.ios) {
+    var gesture = {}, gestureTimeout
+
+    function parentIfText(node){
+      return 'tagName' in node ? node : node.parentNode
+    }
+
+    $(document).bind('gesturestart', function(e){
+      var now = Date.now(), delta = now - (gesture.last || now)
+      gesture.target = parentIfText(e.target)
+      gestureTimeout && clearTimeout(gestureTimeout)
+      gesture.e1 = e.scale
+      gesture.last = now
+    }).bind('gesturechange', function(e){
+      gesture.e2 = e.scale
+    }).bind('gestureend', function(e){
+      if (gesture.e2 > 0) {
+        Math.abs(gesture.e1 - gesture.e2) != 0 && $(gesture.target).trigger('pinch') &&
+          $(gesture.target).trigger('pinch' + (gesture.e1 - gesture.e2 > 0 ? 'In' : 'Out'))
+        gesture.e1 = gesture.e2 = gesture.last = 0
+      } else if ('last' in gesture) {
+        gesture = {}
+      }
+    })
+
+    ;['pinch', 'pinchIn', 'pinchOut'].forEach(function(m){
+      $.fn[m] = function(callback){ return this.bind(m, callback) }
+    })
+  }
+})(Zepto)
+
+//stack
+;(function($){
+  $.fn.end = function(){
+    return this.prevObject || $()
+  }
+
+  $.fn.andSelf = function(){
+    return this.add(this.prevObject || $())
+  }
+  'filter,add,not,eq,first,last,find,closest,parents,parent,children,siblings'.split(',').forEach(function(property){
+    var fn = $.fn[property]
+    $.fn[property] = function(){
+      var ret = fn.apply(this, arguments)
+      ret.prevObject = this
+      return ret
+    }
+  })
+})(Zepto)
+
+//mvp
+;(function($){
+
   var top = window;
-
-  // avoid multiple execution. popstate should be fired only once etc.
   if ($.riot) return;
-
   $.riot = "0.9.4";
-
   function isFunction(el) {
     return Object.prototype.toString.call(el) == '[object Function]';
   }
@@ -1874,8 +2434,6 @@ window.$ === undefined && (window.$ = Zepto)
 
       return el;
     };
-
-    // only single event supported
     el.one = function(type, fn) {
 
       if (isFunction(fn)) {
@@ -1888,7 +2446,6 @@ window.$ === undefined && (window.$ = Zepto)
     };
 
     el.trigger = function(type) {
-      // console.log(type);
       var args = slice.call(arguments, 1),
         fns = callbacks[type] || [];
 
@@ -1896,8 +2453,6 @@ window.$ === undefined && (window.$ = Zepto)
         fn = fns[i];
 
         if (fn.one && fn.done) continue;
-
-        // add event argument when multiple listeners
         fn.apply(el, fn.typed ? [type].concat(args) : args);
 
         fn.done = true;
@@ -1910,7 +2465,6 @@ window.$ === undefined && (window.$ = Zepto)
 
   };
 
-  // emit window.popstate event consistently on page load, on every browser
   var page_popped,
     fn = $.observable({});
 
@@ -1933,7 +2487,6 @@ window.$ === undefined && (window.$ = Zepto)
     pop();
   });
   var exist = {};
-  // Change the browser URL or listen to changes on the URL
   $.route = function(to) {
     if(typeof to === 'string') exist[to] = true;
     // listen
@@ -1955,1342 +2508,7 @@ window.$ === undefined && (window.$ = Zepto)
   }
 })(Zepto)
 
-;(function($){
-  var Hammer = function(){};
-  // default settings
-  Hammer.defaults = {
-    // add styles and attributes to the element to prevent the browser from doing
-    // its native behavior. this doesnt prevent the scrolling, but cancels
-    // the contextmenu, tap highlighting etc
-    // set to false to disable this
-    stop_browser_behavior: {
-      // this also triggers onselectstart=false for IE
-      userSelect       : 'none',
-      // this makes the element blocking in IE10 >, you could experiment with the value
-      // see for more options this issue; https://github.com/EightMedia/hammer.js/issues/241
-      touchAction      : 'none',
-      touchCallout     : 'none',
-      contentZooming   : 'none',
-      userDrag         : 'none',
-      tapHighlightColor: 'rgba(0,0,0,0)'
-    }
-
-    //
-    // more settings are defined per gesture at gestures.js
-    //
-  };
-
-  // detect touchevents
-  Hammer.HAS_POINTEREVENTS = window.navigator.pointerEnabled || window.navigator.msPointerEnabled;
-  Hammer.HAS_TOUCHEVENTS = ('ontouchstart' in window);
-
-  // dont use mouseevents on mobile devices
-  Hammer.MOBILE_REGEX = /mobile|tablet|ip(ad|hone|od)|android|silk/i;
-  Hammer.NO_MOUSEEVENTS = Hammer.HAS_TOUCHEVENTS && window.navigator.userAgent.match(Hammer.MOBILE_REGEX);
-
-  // eventtypes per touchevent (start, move, end)
-  // are filled by Hammer.event.determineEventTypes on setup
-  Hammer.EVENT_TYPES = {};
-
-  // direction defines
-  Hammer.DIRECTION_DOWN = 'down';
-  Hammer.DIRECTION_LEFT = 'left';
-  Hammer.DIRECTION_UP = 'up';
-  Hammer.DIRECTION_RIGHT = 'right';
-
-  // pointer type
-  Hammer.POINTER_MOUSE = 'mouse';
-  Hammer.POINTER_TOUCH = 'touch';
-  Hammer.POINTER_PEN = 'pen';
-
-  // touch event defines
-  Hammer.EVENT_START = 'start';
-  Hammer.EVENT_MOVE = 'move';
-  Hammer.EVENT_END = 'end';
-
-  // hammer document where the base events are added at
-  Hammer.DOCUMENT = window.document;
-
-  // plugins and gestures namespaces
-  Hammer.plugins = Hammer.plugins || {};
-  Hammer.gestures = Hammer.gestures || {};
-
-  // if the window events are set...
-  Hammer.READY = false;
-
-  /**
-   * setup events to detect gestures on the document
-   */
-  function setup() {
-    if(Hammer.READY) {
-      return;
-    }
-
-    // find what eventtypes we add listeners to
-    Hammer.event.determineEventTypes();
-
-    // Register all gestures inside Hammer.gestures
-    Hammer.utils.each(Hammer.gestures, function(gesture){
-      Hammer.detection.register(gesture);
-    });
-
-    // Add touch events on the document
-    Hammer.event.onTouch(Hammer.DOCUMENT, Hammer.EVENT_MOVE, Hammer.detection.detect);
-    Hammer.event.onTouch(Hammer.DOCUMENT, Hammer.EVENT_END, Hammer.detection.detect);
-
-    // Hammer is ready...!
-    Hammer.READY = true;
-  }
-
-  Hammer.utils = {
-    /**
-     * extend method,
-     * also used for cloning when dest is an empty object
-     * @param   {Object}    dest
-     * @param   {Object}    src
-     * @parm  {Boolean}  merge    do a merge
-     * @returns {Object}    dest
-     */
-    extend: function extend(dest, src, merge) {
-      for(var key in src) {
-        if(dest[key] !== undefined && merge) {
-          continue;
-        }
-        dest[key] = src[key];
-      }
-      return dest;
-    },
-
-
-    /**
-     * for each
-     * @param obj
-     * @param iterator
-     */
-    each: function(obj, iterator, context) {
-      // console.log(obj);
-      // native forEach on arrays
-      if ("forEach" in obj) {
-        obj.forEach(iterator, context);
-      } 
-      // arrays
-      else if(obj.length != undefined) {
-        for (var i = 0, length = obj.length; i < length; i++) {
-          if (iterator.call(context, obj[i], i, obj) === false) { 
-            return;
-          }
-        }
-      }
-      // objects
-      else {
-        for (var i in obj) {
-          if (obj.hasOwnProperty(i) && iterator.call(context, obj[i], i, obj) === false) { 
-            return;
-          }
-        }
-      }
-    },
-
-    /**
-     * find if a node is in the given parent
-     * used for event delegation tricks
-     * @param   {HTMLElement}   node
-     * @param   {HTMLElement}   parent
-     * @returns {boolean}       has_parent
-     */
-    hasParent: function(node, parent) {
-      while(node) {
-        if(node == parent) {
-          return true;
-        }
-        node = node.parentNode;
-      }
-      return false;
-    },
-
-
-    /**
-     * get the center of all the touches
-     * @param   {Array}     touches
-     * @returns {Object}    center
-     */
-    getCenter: function getCenter(touches) {
-      var valuesX = [], valuesY = [];
-
-      Hammer.utils.each(touches, function(touch) {
-        // I prefer clientX because it ignore the scrolling position
-        valuesX.push(typeof touch.clientX !== 'undefined' ? touch.clientX : touch.pageX );
-        valuesY.push(typeof touch.clientY !== 'undefined' ? touch.clientY : touch.pageY );
-      });
-
-      return {
-        pageX: ((Math.min.apply(Math, valuesX) + Math.max.apply(Math, valuesX)) / 2),
-        pageY: ((Math.min.apply(Math, valuesY) + Math.max.apply(Math, valuesY)) / 2)
-      };
-    },
-
-
-    /**
-     * calculate the velocity between two points
-     * @param   {Number}    delta_time
-     * @param   {Number}    delta_x
-     * @param   {Number}    delta_y
-     * @returns {Object}    velocity
-     */
-    getVelocity: function getVelocity(delta_time, delta_x, delta_y) {
-      return {
-        x: Math.abs(delta_x / delta_time) || 0,
-        y: Math.abs(delta_y / delta_time) || 0
-      };
-    },
-
-
-    /**
-     * calculate the angle between two coordinates
-     * @param   {Touch}     touch1
-     * @param   {Touch}     touch2
-     * @returns {Number}    angle
-     */
-    getAngle: function getAngle(touch1, touch2) {
-      var y = touch2.pageY - touch1.pageY,
-        x = touch2.pageX - touch1.pageX;
-      return Math.atan2(y, x) * 180 / Math.PI;
-    },
-
-
-    /**
-     * angle to direction define
-     * @param   {Touch}     touch1
-     * @param   {Touch}     touch2
-     * @returns {String}    direction constant, like Hammer.DIRECTION_LEFT
-     */
-    getDirection: function getDirection(touch1, touch2) {
-      var x = Math.abs(touch1.pageX - touch2.pageX),
-        y = Math.abs(touch1.pageY - touch2.pageY);
-
-      if(x >= y) {
-        return touch1.pageX - touch2.pageX > 0 ? Hammer.DIRECTION_LEFT : Hammer.DIRECTION_RIGHT;
-      }
-      else {
-        return touch1.pageY - touch2.pageY > 0 ? Hammer.DIRECTION_UP : Hammer.DIRECTION_DOWN;
-      }
-    },
-
-
-    /**
-     * calculate the distance between two touches
-     * @param   {Touch}     touch1
-     * @param   {Touch}     touch2
-     * @returns {Number}    distance
-     */
-    getDistance: function getDistance(touch1, touch2) {
-      var x = touch2.pageX - touch1.pageX,
-        y = touch2.pageY - touch1.pageY;
-      return Math.sqrt((x * x) + (y * y));
-    },
-
-
-    /**
-     * calculate the scale factor between two touchLists (fingers)
-     * no scale is 1, and goes down to 0 when pinched together, and bigger when pinched out
-     * @param   {Array}     start
-     * @param   {Array}     end
-     * @returns {Number}    scale
-     */
-    getScale: function getScale(start, end) {
-      // need two fingers...
-      if(start.length >= 2 && end.length >= 2) {
-        return this.getDistance(end[0], end[1]) /
-          this.getDistance(start[0], start[1]);
-      }
-      return 1;
-    },
-
-
-    /**
-     * calculate the rotation degrees between two touchLists (fingers)
-     * @param   {Array}     start
-     * @param   {Array}     end
-     * @returns {Number}    rotation
-     */
-    getRotation: function getRotation(start, end) {
-      // need two fingers
-      if(start.length >= 2 && end.length >= 2) {
-        return this.getAngle(end[1], end[0]) -
-          this.getAngle(start[1], start[0]);
-      }
-      return 0;
-    },
-
-
-    /**
-     * boolean if the direction is vertical
-     * @param    {String}    direction
-     * @returns  {Boolean}   is_vertical
-     */
-    isVertical: function isVertical(direction) {
-      return (direction == Hammer.DIRECTION_UP || direction == Hammer.DIRECTION_DOWN);
-    },
-
-
-    /**
-     * stop browser default behavior with css props
-     * @param   {HtmlElement}   element
-     * @param   {Object}        css_props
-     */
-    stopDefaultBrowserBehavior: function stopDefaultBrowserBehavior(element, css_props) {
-      var prop,
-        vendors = ['webkit', 'khtml', 'moz', 'Moz', 'ms', 'o', ''];
-
-      if(!css_props || !element || !element.style) {
-        return;
-      }
-
-      // with css properties for modern browsers
-      Hammer.utils.each(vendors, function(vendor) {
-        Hammer.utils.each(css_props, function(prop) {
-            // vender prefix at the property
-            if(vendor) {
-              prop = vendors + prop.substring(0, 1).toUpperCase() + prop.substring(1);
-            }
-            // set the style
-            if(prop in element.style) {
-              element.style[prop] = prop;
-            }
-        });
-      });
-
-      // also the disable onselectstart
-      if(css_props.userSelect == 'none') {
-        element.onselectstart = function() {
-          return false;
-        };
-      }
-
-      // and disable ondragstart
-      if(css_props.userDrag == 'none') {
-        element.ondragstart = function() {
-        return false;
-      };
-    }
-  }
-  };
-  /**
-   * create new hammer instance
-   * all methods should return the instance itself, so it is chainable.
-   * @param   {HTMLElement}       element
-   * @param   {Object}            [options={}]
-   * @returns {Hammer.Instance}
-   * @constructor
-   */
-  Hammer.Instance = function(element, options) {
-    var self = this;
-    // setup HammerJS window events and register all gestures
-    // this also sets up the default options
-    setup();
-    this.element = element;
-    // start/stop detection option
-    this.enabled = true;
-    // merge options
-    this.options = Hammer.utils.extend(
-      Hammer.utils.extend({}, Hammer.defaults),
-      options || {});
-    // add some css to the element to prevent the browser from doing its native behavoir
-    if(this.options.stop_browser_behavior) {
-      Hammer.utils.stopDefaultBrowserBehavior(this.element, this.options.stop_browser_behavior);
-    }
-    // start detection on touchstart
-    Hammer.event.onTouch(element, Hammer.EVENT_START, function(ev) {
-      if(self.enabled) {
-        Hammer.detection.startDetect(self, ev);
-      }
-    });
-    // return instance
-    return this;
-  };
-  Hammer.Instance.prototype = {
-    /**
-     * bind events to the instance
-     * @param   {String}      gesture
-     * @param   {Function}    handler
-     * @returns {Hammer.Instance}
-     */
-    on: function onEvent(gesture, handler) {
-      var gestures = gesture.split(' ');
-      // console.log(gestures);
-      Hammer.utils.each(gestures, function(gesture) {
-        this.element.addEventListener(gesture, handler, false);
-      }, this);
-      return this;
-    },
-    /**
-     * unbind events to the instance
-     * @param   {String}      gesture
-     * @param   {Function}    handler
-     * @returns {Hammer.Instance}
-     */
-    off: function offEvent(gesture, handler) {
-      var gestures = gesture.split(' ');
-      Hammer.utils.each(gestures, function(gesture) {
-        this.element.removeEventListener(gesture, handler, false);
-      }, this);
-      return this;
-    },
-    /**
-     * trigger gesture event
-     * @param   {String}      gesture
-     * @param   {Object}      [eventData]
-     * @returns {Hammer.Instance}
-     */
-    trigger: function triggerEvent(gesture, eventData) {
-      // optional
-      if(!eventData) {
-        eventData = {};
-      }
-
-      // create DOM event
-      var event = Hammer.DOCUMENT.createEvent('Event');
-      event.initEvent(gesture, true, true);
-      event.gesture = eventData;
-
-      // trigger on the target if it is in the instance element,
-      // this is for event delegation tricks
-      var element = this.element;
-      if(Hammer.utils.hasParent(eventData.target, element)) {
-        element = eventData.target;
-      }
-
-      element.dispatchEvent(event);
-      return this;
-    },
-    /**
-     * enable of disable hammer.js detection
-     * @param   {Boolean}   state
-     * @returns {Hammer.Instance}
-     */
-    enable: function enable(state) {
-      this.enabled = state;
-      return this;
-    }
-  };
-  /**
-   * this holds the last move event,
-   * used to fix empty touchend issue
-   * see the onTouch event for an explanation
-   * @type {Object}
-   */
-  var last_move_event = null;
-  /**
-   * when the mouse is hold down, this is true
-   * @type {Boolean}
-   */
-  var enable_detect = false;
-  /**
-   * when touch events have been fired, this is true
-   * @type {Boolean}
-   */
-  var touch_triggered = false;
-  Hammer.event = {
-    /**
-     * simple addEventListener
-     * @param   {HTMLElement}   element
-     * @param   {String}        type
-     * @param   {Function}      handler
-     */
-    bindDom: function(element, type, handler) {
-      var types = type.split(' ');
-      Hammer.utils.each(types, function(type){
-        element.addEventListener(type, handler, false);
-      });
-    },
-    /**
-     * touch events with mouse fallback
-     * @param   {HTMLElement}   element
-     * @param   {String}        eventType        like Hammer.EVENT_MOVE
-     * @param   {Function}      handler
-     */
-    onTouch: function onTouch(element, eventType, handler) {
-      var self = this;
-      this.bindDom(element, Hammer.EVENT_TYPES[eventType], function bindDomOnTouch(ev) {
-        var sourceEventType = ev.type.toLowerCase();
-
-        // onmouseup, but when touchend has been fired we do nothing.
-        // this is for touchdevices which also fire a mouseup on touchend
-        if(sourceEventType.match(/mouse/) && touch_triggered) {
-          return;
-        }
-
-        // mousebutton must be down or a touch event
-        else if(sourceEventType.match(/touch/) ||   // touch events are always on screen
-          sourceEventType.match(/pointerdown/) || // pointerevents touch
-          (sourceEventType.match(/mouse/) && ev.which === 1)   // mouse is pressed
-          ) {
-          enable_detect = true;
-        }
-
-        // mouse isn't pressed
-        else if(sourceEventType.match(/mouse/) && !ev.which) {
-          enable_detect = false;
-        }
-
-
-        // we are in a touch event, set the touch triggered bool to true,
-        // this for the conflicts that may occur on ios and android
-        if(sourceEventType.match(/touch|pointer/)) {
-          touch_triggered = true;
-        }
-
-        // count the total touches on the screen
-        var count_touches = 0;
-
-        // when touch has been triggered in this detection session
-        // and we are now handling a mouse event, we stop that to prevent conflicts
-        if(enable_detect) {
-          // update pointerevent
-          if(Hammer.HAS_POINTEREVENTS && eventType != Hammer.EVENT_END) {
-            count_touches = Hammer.PointerEvent.updatePointer(eventType, ev);
-          }
-          // touch
-          else if(sourceEventType.match(/touch/)) {
-            count_touches = ev.touches.length;
-          }
-          // mouse
-          else if(!touch_triggered) {
-            count_touches = sourceEventType.match(/up/) ? 0 : 1;
-          }
-
-          // if we are in a end event, but when we remove one touch and
-          // we still have enough, set eventType to move
-          if(count_touches > 0 && eventType == Hammer.EVENT_END) {
-            eventType = Hammer.EVENT_MOVE;
-          }
-          // no touches, force the end event
-          else if(!count_touches) {
-            eventType = Hammer.EVENT_END;
-          }
-
-          // store the last move event
-          if(count_touches || last_move_event === null) {
-            last_move_event = ev;
-          }
-
-          // trigger the handler
-          handler.call(Hammer.detection, self.collectEventData(element, eventType, self.getTouchList(last_move_event, eventType), ev));
-
-          // remove pointerevent from list
-          if(Hammer.HAS_POINTEREVENTS && eventType == Hammer.EVENT_END) {
-            count_touches = Hammer.PointerEvent.updatePointer(eventType, ev);
-          }
-        }
-
-        // on the end we reset everything
-        if(!count_touches) {
-          last_move_event = null;
-          enable_detect = false;
-          touch_triggered = false;
-          Hammer.PointerEvent.reset();
-        }
-      });
-    },
-
-
-    /**
-     * we have different events for each device/browser
-     * determine what we need and set them in the Hammer.EVENT_TYPES constant
-     */
-    determineEventTypes: function determineEventTypes() {
-      // determine the eventtype we want to set
-      var types;
-
-      // pointerEvents magic
-      if(Hammer.HAS_POINTEREVENTS) {
-        types = Hammer.PointerEvent.getEvents();
-      }
-      // on Android, iOS, blackberry, windows mobile we dont want any mouseevents
-      else if(Hammer.NO_MOUSEEVENTS) {
-        types = [
-          'touchstart',
-          'touchmove',
-          'touchend touchcancel'];
-      }
-      // for non pointer events browsers and mixed browsers,
-      // like chrome on windows8 touch laptop
-      else {
-        types = [
-          'touchstart mousedown',
-          'touchmove mousemove',
-          'touchend touchcancel mouseup'];
-      }
-
-      Hammer.EVENT_TYPES[Hammer.EVENT_START] = types[0];
-      Hammer.EVENT_TYPES[Hammer.EVENT_MOVE] = types[1];
-      Hammer.EVENT_TYPES[Hammer.EVENT_END] = types[2];
-    },
-
-
-    /**
-     * create touchlist depending on the event
-     * @param   {Object}    ev
-     * @param   {String}    eventType   used by the fakemultitouch plugin
-     */
-    getTouchList: function getTouchList(ev/*, eventType*/) {
-      // get the fake pointerEvent touchlist
-      if(Hammer.HAS_POINTEREVENTS) {
-        return Hammer.PointerEvent.getTouchList();
-      }
-      // get the touchlist
-      else if(ev.touches) {
-        return ev.touches;
-      }
-      // make fake touchlist from mouse position
-      else {
-        ev.indentifier = 1;
-        return [ev];
-      }
-    },
-
-
-    /**
-     * collect event data for Hammer js
-     * @param   {HTMLElement}   element
-     * @param   {String}        eventType        like Hammer.EVENT_MOVE
-     * @param   {Object}        eventData
-     */
-    collectEventData: function collectEventData(element, eventType, touches, ev) {
-      // find out pointerType
-      var pointerType = Hammer.POINTER_TOUCH;
-      if(ev.type.match(/mouse/) || Hammer.PointerEvent.matchType(Hammer.POINTER_MOUSE, ev)) {
-        pointerType = Hammer.POINTER_MOUSE;
-      }
-
-      return {
-        center     : Hammer.utils.getCenter(touches),
-        timeStamp  : new Date().getTime(),
-        target     : ev.target,
-        touches    : touches,
-        eventType  : eventType,
-        pointerType: pointerType,
-        srcEvent   : ev,
-
-        /**
-         * prevent the browser default actions
-         * mostly used to disable scrolling of the browser
-         */
-        preventDefault: function() {
-          if(this.srcEvent.preventManipulation) {
-            this.srcEvent.preventManipulation();
-          }
-
-          if(this.srcEvent.preventDefault) {
-            this.srcEvent.preventDefault();
-          }
-        },
-
-        /**
-         * stop bubbling the event up to its parents
-         */
-        stopPropagation: function() {
-          this.srcEvent.stopPropagation();
-        },
-
-        /**
-         * immediately stop gesture detection
-         * might be useful after a swipe was detected
-         * @return {*}
-         */
-        stopDetect: function() {
-          return Hammer.detection.stopDetect();
-        }
-      };
-    }
-  };
-
-  Hammer.PointerEvent = {
-    /**
-     * holds all pointers
-     * @type {Object}
-     */
-    pointers: {},
-
-    /**
-     * get a list of pointers
-     * @returns {Array}     touchlist
-     */
-    getTouchList: function() {
-      var self = this;
-      var touchlist = [];
-
-      // we can use forEach since pointerEvents only is in IE10
-      Hammer.utils.each(self.pointers, function(pointer){
-        touchlist.push(pointer);
-      });
-      
-      return touchlist;
-    },
-
-    /**
-     * update the position of a pointer
-     * @param   {String}   type             Hammer.EVENT_END
-     * @param   {Object}   pointerEvent
-     */
-    updatePointer: function(type, pointerEvent) {
-      if(type == Hammer.EVENT_END) {
-        this.pointers = {};
-      }
-      else {
-        pointerEvent.identifier = pointerEvent.pointerId;
-        this.pointers[pointerEvent.pointerId] = pointerEvent;
-      }
-
-      return Object.keys(this.pointers).length;
-    },
-
-    /**
-     * check if ev matches pointertype
-     * @param   {String}        pointerType     Hammer.POINTER_MOUSE
-     * @param   {PointerEvent}  ev
-     */
-    matchType: function(pointerType, ev) {
-      if(!ev.pointerType) {
-        return false;
-      }
-
-      var pt = ev.pointerType,
-        types = {};
-      types[Hammer.POINTER_MOUSE] = (pt === ev.MSPOINTER_TYPE_MOUSE || pt === Hammer.POINTER_MOUSE);
-      types[Hammer.POINTER_TOUCH] = (pt === ev.MSPOINTER_TYPE_TOUCH || pt === Hammer.POINTER_TOUCH);
-      types[Hammer.POINTER_PEN] = (pt === ev.MSPOINTER_TYPE_PEN || pt === Hammer.POINTER_PEN);
-      return types[pointerType];
-    },
-
-
-    /**
-     * get events
-     */
-    getEvents: function() {
-      return [
-        'pointerdown MSPointerDown',
-        'pointermove MSPointerMove',
-        'pointerup pointercancel MSPointerUp MSPointerCancel'
-      ];
-    },
-
-    /**
-     * reset the list
-     */
-    reset: function() {
-      this.pointers = {};
-    }
-  };
-
-
-  Hammer.detection = {
-    // contains all registred Hammer.gestures in the correct order
-    gestures: [],
-
-    // data of the current Hammer.gesture detection session
-    current : null,
-
-    // the previous Hammer.gesture session data
-    // is a full clone of the previous gesture.current object
-    previous: null,
-
-    // when this becomes true, no gestures are fired
-    stopped : false,
-
-
-    /**
-     * start Hammer.gesture detection
-     * @param   {Hammer.Instance}   inst
-     * @param   {Object}            eventData
-     */
-    startDetect: function startDetect(inst, eventData) {
-      // already busy with a Hammer.gesture detection on an element
-      if(this.current) {
-        return;
-      }
-
-      this.stopped = false;
-
-      this.current = {
-        inst      : inst, // reference to HammerInstance we're working for
-        startEvent: Hammer.utils.extend({}, eventData), // start eventData for distances, timing etc
-        lastEvent : false, // last eventData
-        name      : '' // current gesture we're in/detected, can be 'tap', 'hold' etc
-      };
-
-      this.detect(eventData);
-    },
-
-
-    /**
-     * Hammer.gesture detection
-     * @param   {Object}    eventData
-     */
-    detect: function detect(eventData) {
-      if(!this.current || this.stopped) {
-        return;
-      }
-
-      // extend event data with calculations about scale, distance etc
-      eventData = this.extendEventData(eventData);
-
-      // instance options
-      var inst_options = this.current.inst.options;
-
-      // call Hammer.gesture handlers
-      Hammer.utils.each(this.gestures, function(gesture) {
-        // only when the instance options have enabled this gesture
-        if(!this.stopped && inst_options[gesture.name] !== false) {
-          // if a handler returns false, we stop with the detection
-          if(gesture.handler.call(gesture, eventData, this.current.inst) === false) {
-            this.stopDetect();
-            return false;
-          }
-        }
-      }, this);
-
-      // store as previous event event
-      if(this.current) {
-        this.current.lastEvent = eventData;
-      }
-
-      // endevent, but not the last touch, so dont stop
-      if(eventData.eventType == Hammer.EVENT_END && !eventData.touches.length - 1) {
-        this.stopDetect();
-      }
-
-      return eventData;
-    },
-
-
-    /**
-     * clear the Hammer.gesture vars
-     * this is called on endDetect, but can also be used when a final Hammer.gesture has been detected
-     * to stop other Hammer.gestures from being fired
-     */
-    stopDetect: function stopDetect() {
-      // clone current data to the store as the previous gesture
-      // used for the double tap gesture, since this is an other gesture detect session
-      this.previous = Hammer.utils.extend({}, this.current);
-
-      // reset the current
-      this.current = null;
-
-      // stopped!
-      this.stopped = true;
-    },
-
-
-    /**
-     * extend eventData for Hammer.gestures
-     * @param   {Object}   ev
-     * @returns {Object}   ev
-     */
-    extendEventData: function extendEventData(ev) {
-      var startEv = this.current.startEvent;
-
-      // if the touches change, set the new touches over the startEvent touches
-      // this because touchevents don't have all the touches on touchstart, or the
-      // user must place his fingers at the EXACT same time on the screen, which is not realistic
-      // but, sometimes it happens that both fingers are touching at the EXACT same time
-      if(startEv && (ev.touches.length != startEv.touches.length || ev.touches === startEv.touches)) {
-        // extend 1 level deep to get the touchlist with the touch objects
-        startEv.touches = [];
-        Hammer.utils.each(ev.touches, function(touch) {
-          startEv.touches.push(Hammer.utils.extend({}, touch));
-        });
-      }
-
-      var delta_time = ev.timeStamp - startEv.timeStamp
-        , delta_x = ev.center.pageX - startEv.center.pageX
-        , delta_y = ev.center.pageY - startEv.center.pageY
-        , velocity = Hammer.utils.getVelocity(delta_time, delta_x, delta_y)
-        , interimAngle
-        , interimDirection;
-
-      // end events (e.g. dragend) don't have useful values for interimDirection & interimAngle
-      // because the previous event has exactly the same coordinates
-      // so for end events, take the previous values of interimDirection & interimAngle
-      // instead of recalculating them and getting a spurious '0'
-      if(ev.eventType === 'end') {
-        interimAngle = this.current.lastEvent && this.current.lastEvent.interimAngle;
-        interimDirection = this.current.lastEvent && this.current.lastEvent.interimDirection;
-      }
-      else {
-        interimAngle = this.current.lastEvent && Hammer.utils.getAngle(this.current.lastEvent.center, ev.center);
-        interimDirection = this.current.lastEvent && Hammer.utils.getDirection(this.current.lastEvent.center, ev.center);
-      }
-
-      Hammer.utils.extend(ev, {
-        deltaTime: delta_time,
-
-        deltaX: delta_x,
-        deltaY: delta_y,
-
-        velocityX: velocity.x,
-        velocityY: velocity.y,
-
-        distance: Hammer.utils.getDistance(startEv.center, ev.center),
-
-        angle: Hammer.utils.getAngle(startEv.center, ev.center),
-        interimAngle: interimAngle,
-
-        direction: Hammer.utils.getDirection(startEv.center, ev.center),
-        interimDirection: interimDirection,
-
-        scale: Hammer.utils.getScale(startEv.touches, ev.touches),
-        rotation: Hammer.utils.getRotation(startEv.touches, ev.touches),
-
-        startEvent: startEv
-      });
-
-      return ev;
-    },
-
-
-    /**
-     * register new gesture
-     * @param   {Object}    gesture object, see gestures.js for documentation
-     * @returns {Array}     gestures
-     */
-    register: function register(gesture) {
-      // add an enable gesture options if there is no given
-      var options = gesture.defaults || {};
-      if(options[gesture.name] === undefined) {
-        options[gesture.name] = true;
-      }
-
-      // extend Hammer default options with the Hammer.gesture options
-      Hammer.utils.extend(Hammer.defaults, options, true);
-
-      // set its index
-      gesture.index = gesture.index || 1000;
-
-      // add Hammer.gesture to the list
-      this.gestures.push(gesture);
-
-      // sort the list by index
-      this.gestures.sort(function(a, b) {
-        if(a.index < b.index) { return -1; }
-        if(a.index > b.index) { return 1; }
-        return 0;
-      });
-
-      return this.gestures;
-    }
-  };
-  /**
-   * Drag
-   * Move with x fingers (default 1) around on the page. Blocking the scrolling when
-   * moving left and right is a good practice. When all the drag events are blocking
-   * you disable scrolling on that area.
-   * @events  drag, drapleft, dragright, dragup, dragdown
-   */
-  Hammer.gestures.Drag = {
-    name     : 'drag',
-    index    : 50,
-    defaults : {
-      drag_min_distance            : 10,
-      
-      // Set correct_for_drag_min_distance to true to make the starting point of the drag
-      // be calculated from where the drag was triggered, not from where the touch started.
-      // Useful to avoid a jerk-starting drag, which can make fine-adjustments
-      // through dragging difficult, and be visually unappealing.
-      correct_for_drag_min_distance: true,
-      
-      // set 0 for unlimited, but this can conflict with transform
-      drag_max_touches             : 1,
-      
-      // prevent default browser behavior when dragging occurs
-      // be careful with it, it makes the element a blocking element
-      // when you are using the drag gesture, it is a good practice to set this true
-      drag_block_horizontal        : false,
-      drag_block_vertical          : false,
-      
-      // drag_lock_to_axis keeps the drag gesture on the axis that it started on,
-      // It disallows vertical directions if the initial direction was horizontal, and vice versa.
-      drag_lock_to_axis            : false,
-      
-      // drag lock only kicks in when distance > drag_lock_min_distance
-      // This way, locking occurs only when the distance has become large enough to reliably determine the direction
-      drag_lock_min_distance       : 25
-    },
-    
-    triggered: false,
-    handler  : function dragGesture(ev, inst) {
-      // current gesture isnt drag, but dragged is true
-      // this means an other gesture is busy. now call dragend
-      if(Hammer.detection.current.name != this.name && this.triggered) {
-        inst.trigger(this.name + 'end', ev);
-        this.triggered = false;
-        return;
-      }
-
-      // max touches
-      if(inst.options.drag_max_touches > 0 &&
-        ev.touches.length > inst.options.drag_max_touches) {
-        return;
-      }
-
-      switch(ev.eventType) {
-        case Hammer.EVENT_START:
-          this.triggered = false;
-          break;
-
-        case Hammer.EVENT_MOVE:
-          // when the distance we moved is too small we skip this gesture
-          // or we can be already in dragging
-          if(ev.distance < inst.options.drag_min_distance &&
-            Hammer.detection.current.name != this.name) {
-            return;
-          }
-
-          // we are dragging!
-          if(Hammer.detection.current.name != this.name) {
-            Hammer.detection.current.name = this.name;
-            if(inst.options.correct_for_drag_min_distance && ev.distance > 0) {
-              // When a drag is triggered, set the event center to drag_min_distance pixels from the original event center.
-              // Without this correction, the dragged distance would jumpstart at drag_min_distance pixels instead of at 0.
-              // It might be useful to save the original start point somewhere
-              var factor = Math.abs(inst.options.drag_min_distance / ev.distance);
-              Hammer.detection.current.startEvent.center.pageX += ev.deltaX * factor;
-              Hammer.detection.current.startEvent.center.pageY += ev.deltaY * factor;
-
-              // recalculate event data using new start point
-              ev = Hammer.detection.extendEventData(ev);
-            }
-          }
-
-          // lock drag to axis?
-          if(Hammer.detection.current.lastEvent.drag_locked_to_axis || (inst.options.drag_lock_to_axis && inst.options.drag_lock_min_distance <= ev.distance)) {
-            ev.drag_locked_to_axis = true;
-          }
-          var last_direction = Hammer.detection.current.lastEvent.direction;
-          if(ev.drag_locked_to_axis && last_direction !== ev.direction) {
-            // keep direction on the axis that the drag gesture started on
-            if(Hammer.utils.isVertical(last_direction)) {
-              ev.direction = (ev.deltaY < 0) ? Hammer.DIRECTION_UP : Hammer.DIRECTION_DOWN;
-            }
-            else {
-              ev.direction = (ev.deltaX < 0) ? Hammer.DIRECTION_LEFT : Hammer.DIRECTION_RIGHT;
-            }
-          }
-
-          // first time, trigger dragstart event
-          if(!this.triggered) {
-            inst.trigger(this.name + 'start', ev);
-            this.triggered = true;
-          }
-
-          // trigger normal event
-          inst.trigger(this.name, ev);
-
-          // direction event, like dragdown
-          inst.trigger(this.name + ev.direction, ev);
-
-          // block the browser events
-          if((inst.options.drag_block_vertical && Hammer.utils.isVertical(ev.direction)) ||
-            (inst.options.drag_block_horizontal && !Hammer.utils.isVertical(ev.direction))) {
-            ev.preventDefault();
-          }
-          break;
-
-        case Hammer.EVENT_END:
-          // trigger dragend
-          if(this.triggered) {
-            inst.trigger(this.name + 'end', ev);
-          }
-
-          this.triggered = false;
-          break;
-      }
-    }
-  };
-
-  /**
-   * Hold
-   * Touch stays at the same place for x time
-   * @events  hold
-   */
-  Hammer.gestures.Hold = {
-    name    : 'hold',
-    index   : 10,
-    defaults: {
-      hold_timeout  : 500,
-      hold_threshold: 1
-    },
-    timer   : null,
-    handler : function holdGesture(ev, inst) {
-      switch(ev.eventType) {
-        case Hammer.EVENT_START:
-          // clear any running timers
-          clearTimeout(this.timer);
-
-          // set the gesture so we can check in the timeout if it still is
-          Hammer.detection.current.name = this.name;
-
-          // set timer and if after the timeout it still is hold,
-          // we trigger the hold event
-          this.timer = setTimeout(function() {
-            if(Hammer.detection.current.name == 'hold') {
-              inst.trigger('hold', ev);
-            }
-          }, inst.options.hold_timeout);
-          break;
-
-        // when you move or end we clear the timer
-        case Hammer.EVENT_MOVE:
-          if(ev.distance > inst.options.hold_threshold) {
-            clearTimeout(this.timer);
-          }
-          break;
-
-        case Hammer.EVENT_END:
-          clearTimeout(this.timer);
-          break;
-      }
-    }
-  };
-
-  /**
-   * Release
-   * Called as last, tells the user has released the screen
-   * @events  release
-   */
-  Hammer.gestures.Release = {
-    name   : 'release',
-    index  : Infinity,
-    handler: function releaseGesture(ev, inst) {
-      if(ev.eventType == Hammer.EVENT_END) {
-        inst.trigger(this.name, ev);
-      }
-    }
-  };
-
-  /**
-   * Swipe
-   * triggers swipe events when the end velocity is above the threshold
-   * @events  swipe, swipeleft, swiperight, swipeup, swipedown
-   */
-  Hammer.gestures.Swipe = {
-    name    : 'swipe',
-    index   : 40,
-    defaults: {
-      // set 0 for unlimited, but this can conflict with transform
-      swipe_min_touches: 1,
-      swipe_max_touches: 1,
-      swipe_velocity   : 0.7
-    },
-    handler : function swipeGesture(ev, inst) {
-      if(ev.eventType == Hammer.EVENT_END) {
-        // max touches
-        if(inst.options.swipe_max_touches > 0 &&
-          ev.touches.length < inst.options.swipe_min_touches &&
-          ev.touches.length > inst.options.swipe_max_touches) {
-          return;
-        }
-
-        // when the distance we moved is too small we skip this gesture
-        // or we can be already in dragging
-        if(ev.velocityX > inst.options.swipe_velocity ||
-          ev.velocityY > inst.options.swipe_velocity) {
-          // trigger swipe events
-          inst.trigger(this.name, ev);
-          inst.trigger(this.name + ev.direction, ev);
-        }
-      }
-    }
-  };
-
-  /**
-   * Tap/DoubleTap
-   * Quick touch at a place or double at the same place
-   * @events  tap, doubletap
-   */
-  Hammer.gestures.Tap = {
-    name    : 'tap',
-    index   : 100,
-    defaults: {
-      tap_max_touchtime : 250,
-      tap_max_distance  : 10,
-      tap_always        : true,
-      doubletap_distance: 20,
-      doubletap_interval: 300
-    },
-    handler : function tapGesture(ev, inst) {
-      if(ev.eventType == Hammer.EVENT_END && ev.srcEvent.type != 'touchcancel') {
-        // previous gesture, for the double tap since these are two different gesture detections
-        var prev = Hammer.detection.previous,
-          did_doubletap = false;
-
-        // when the touchtime is higher then the max touch time
-        // or when the moving distance is too much
-        if(ev.deltaTime > inst.options.tap_max_touchtime ||
-          ev.distance > inst.options.tap_max_distance) {
-          return;
-        }
-
-        // check if double tap
-        if(prev && prev.name == 'tap' &&
-          (ev.timeStamp - prev.lastEvent.timeStamp) < inst.options.doubletap_interval &&
-          ev.distance < inst.options.doubletap_distance) {
-          inst.trigger('doubletap', ev);
-          did_doubletap = true;
-        }
-
-        // do a single tap
-        if(!did_doubletap || inst.options.tap_always) {
-          Hammer.detection.current.name = 'tap';
-          inst.trigger(Hammer.detection.current.name, ev);
-        }
-      }
-    }
-  };
-
-  /**
-   * Touch
-   * Called as first, tells the user has touched the screen
-   * @events  touch
-   */
-  Hammer.gestures.Touch = {
-    name    : 'touch',
-    index   : -Infinity,
-    defaults: {
-      // call preventDefault at touchstart, and makes the element blocking by
-      // disabling the scrolling of the page, but it improves gestures like
-      // transforming and dragging.
-      // be careful with using this, it can be very annoying for users to be stuck
-      // on the page
-      prevent_default    : false,
-
-      // disable mouse events, so only touch (or pen!) input triggers events
-      prevent_mouseevents: false
-    },
-    handler : function touchGesture(ev, inst) {
-      if(inst.options.prevent_mouseevents && ev.pointerType == Hammer.POINTER_MOUSE) {
-        ev.stopDetect();
-        return;
-      }
-
-      if(inst.options.prevent_default) {
-        ev.preventDefault();
-      }
-
-      if(ev.eventType == Hammer.EVENT_START) {
-        inst.trigger(this.name, ev);
-      }
-    }
-  };
-
-  /**
-   * Transform
-   * User want to scale or rotate with 2 fingers
-   * @events  transform, pinch, pinchin, pinchout, rotate
-   */
-  Hammer.gestures.Transform = {
-    name     : 'transform',
-    index    : 45,
-    defaults : {
-      // factor, no scale is 1, zoomin is to 0 and zoomout until higher then 1
-      transform_min_scale   : 0.01,
-      // rotation in degrees
-      transform_min_rotation: 1,
-      // prevent default browser behavior when two touches are on the screen
-      // but it makes the element a blocking element
-      // when you are using the transform gesture, it is a good practice to set this true
-      transform_always_block: false
-    },
-    triggered: false,
-    handler  : function transformGesture(ev, inst) {
-      // current gesture isnt drag, but dragged is true
-      // this means an other gesture is busy. now call dragend
-      if(Hammer.detection.current.name != this.name && this.triggered) {
-        inst.trigger(this.name + 'end', ev);
-        this.triggered = false;
-        return;
-      }
-
-      // atleast multitouch
-      if(ev.touches.length < 2) {
-        return;
-      }
-
-      // prevent default when two fingers are on the screen
-      if(inst.options.transform_always_block) {
-        ev.preventDefault();
-      }
-
-      switch(ev.eventType) {
-        case Hammer.EVENT_START:
-          this.triggered = false;
-          break;
-
-        case Hammer.EVENT_MOVE:
-          var scale_threshold = Math.abs(1 - ev.scale);
-          var rotation_threshold = Math.abs(ev.rotation);
-
-          // when the distance we moved is too small we skip this gesture
-          // or we can be already in dragging
-          if(scale_threshold < inst.options.transform_min_scale &&
-            rotation_threshold < inst.options.transform_min_rotation) {
-            return;
-          }
-
-          // we are transforming!
-          Hammer.detection.current.name = this.name;
-
-          // first time, trigger dragstart event
-          if(!this.triggered) {
-            inst.trigger(this.name + 'start', ev);
-            this.triggered = true;
-          }
-
-          inst.trigger(this.name, ev); // basic transform event
-
-          // trigger rotate event
-          if(rotation_threshold > inst.options.transform_min_rotation) {
-            inst.trigger('rotate', ev);
-          }
-
-          // trigger pinch event
-          if(scale_threshold > inst.options.transform_min_scale) {
-            inst.trigger('pinch', ev);
-            inst.trigger('pinch' + ((ev.scale < 1) ? 'in' : 'out'), ev);
-          }
-          break;
-
-        case Hammer.EVENT_END:
-          // trigger dragend
-          if(this.triggered) {
-            inst.trigger(this.name + 'end', ev);
-          }
-
-          this.triggered = false;
-          break;
-      }
-    }
-  };
-  $.fn.touch = function(type,options){
-      var cache = this.data('touch');
-      if(!cache){
-          this.data('touch',(cache = new Hammer.Instance(this[0], options || {})));
-          // console.log(cache);
-          cache.on(type,options);
-      }else{
-          cache.on(type,options);
-      }
-  }
-  $.fn.touch.Constructor = $.touch;
-  $.fn.untouch = function(type,options){
-      var cache = this.data('touch');
-      if(cache){
-          cache.off(type,options);
-      }
-  }
-  $.fn.untouch.Constructor = $.untouch;
-})(Zepto)
-
+//animates
 ;(function($){
   $.animates = function (obj, prop, params, ease, onMorphInit, onMorph, onMorphEnd) {
       var IE = !document.getElementsByClassName,
@@ -3544,7 +2762,9 @@ window.$ === undefined && (window.$ = Zepto)
   $.fn.animates.Constructor = $.animates;
 })(Zepto)
 
+//template
 ;(function($){
+  var global = window;
   /**
    * 模板引擎
    * 若第二个参数类型为 String 则执行 compile 方法, 否则执行 render 方法
@@ -4062,7 +3282,7 @@ window.$ === undefined && (window.$ = Zepto)
     $.template = template;
 })(Zepto)
 
-;(function(){
+;(function($){
   // __proto__ doesn't exist on IE<11, so redefine
   // the Z function to use object extension instead
   if (!('__proto__' in {})) {
@@ -4095,4 +3315,4 @@ window.$ === undefined && (window.$ = Zepto)
       }
     }
   }
-})()
+})(Zepto)

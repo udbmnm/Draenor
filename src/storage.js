@@ -120,7 +120,13 @@
         var HREF = window.location.href,regx = /(\?|\#)(.+)/,bool;
         var ROUE = regx.exec(HREF);
         ROUE !== null ? bool = decodeURI(ROUE[2]) : bool = false;
+        if(!bool){
+            throw new Error('URL解析出错');
+        }
         return bool;
+    }
+    $.stringify = function(obj){
+        return JSON.stringify(obj);
     }
     /**
     *   @class Guid
