@@ -12,7 +12,7 @@
           var value = el.val();
           if(value.length === 0){
               $.error.show(self.defaultmessage);
-              setTimeout(function(){$.error.hide();},2000);
+              $.error.hide();
               bool = false;
               break;
           }
@@ -55,8 +55,6 @@
       var submitE = $(this.options.submitElements);
       var Self = this;
       this.defaultmessage = options.defaultmessage || '账户或密码不能为空';
-      // console.log(submitE);
-      // console.log(type);
       submitE.on(type,function(event){
           trigger(this,Self,event);
       });

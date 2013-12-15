@@ -3,6 +3,7 @@
 */
 (function($){
     var storage = localStorage,localstoreConnectors = [],index,session = sessionStorage;
+    $.DOMcollection = {};
     /**
     *   @method receiveMessage
     *   @param config {array}
@@ -33,11 +34,8 @@
     *   @param value {any} 
     *   @param callback {function || boolean}
     */
-    var set = function(key,value,callback){
-        var v = value;
-        if($.type(value) === 'object' || $.type(value) === 'array') v = JSON.stringify(value);
-        $.type(callback) === 'boolean' ? session.setItem(key,v) : storage.setItem(key,v);
-        if(typeof callback === 'function') callback.call(this);
+    var set = function(key,value,bool){
+        bool ? session.setItem(key,value) : storage.setItem(key,value);
     }
     /**
     *   @method get
@@ -244,26 +242,27 @@
     */
     var error = function(){
         var body = $('body');
-        var html = '<div id="error_backdrop" class="modal-backdrop error_backdrop" style="display:none;"></div>' + '<div class="error" id="error_parent" style="display:none;"><h1 id="error_content"></h1></div>';
+        var html = '<div id="backdrop" class="modal-backdrop fade in" style="display:none;"></div>' + '<div class="error" id="error_parent" style="display:none;"><h1 id="error_content"></h1></div>';
         body.append(html);
-        var e_backdrop = $('#error_backdrop'),e_content = $('#error_content'),e_c_parent = $('#error_parent');
+        $.DOMcollection.backdrop = $('#backdrop');
+        var e_c = $('#error_content'),e_p = $('#error_parent');
         return {
             /**
             *   @method show
             *   @param str {string}
             */
             show:function(str){
-                e_backdrop.show();
-                e_content.html(str);
-                e_c_parent.show();
+                $.DOMcollection.backdrop.show();
+                e_c.html(str);
+                e_p.show();
             },
             /**
             *   @method hide
             */
             hide:function(){
                 setTimeout(function(){
-                    e_backdrop.hide();
-                    e_c_parent.hide();
+                    $.DOMcollection.backdrop.hide();
+                    e_p.hide();
                 },2000);
             }
         }

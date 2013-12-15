@@ -2,11 +2,6 @@
 * mobile ui dialog 对话框 依赖 zepto.js  作者：wenren
 */
 (function($){
-  //遮罩
-  var body = $('body');
-  var drop = '<div id="backdrop" class="modal-backdrop fade in" style="display:none;"></div>';  
-  body.append(drop);
-  var backdrop = $('#backdrop');
   /**
   *  @class Dialog
   *  @constructor
@@ -17,13 +12,12 @@
       this.options = options;
   }
   Dialog.prototype = {
-      constructor:Dialog,
       /**
       * open dialog 
       * @method show
       */
       show:function(){          
-          backdrop.show();
+          $.DOMcollection.backdrop.show();
           this.show();
       },
       /**
@@ -31,7 +25,7 @@
       * @method hide
       */
       hide:function(){
-          backdrop.hide();
+          $.DOMcollection.backdrop.hide();
           this.hide();
       }
   }
