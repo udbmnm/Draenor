@@ -9,6 +9,7 @@ html, body, form, fieldset, p, div, h1, h2, h3, h4, h5, h6 {-webkit-text-size-ad
     top: auto;
     z-index: ;
     overflow-x: auto;
+    z-index: 1050;
 }
 .modal .modal-dialog{
 	left: auto;
@@ -18,7 +19,6 @@ html, body, form, fieldset, p, div, h1, h2, h3, h4, h5, h6 {-webkit-text-size-ad
     padding-top: 30px;
     width: 600px;
     position: relative;
-    z-index: 1050;
 }
 .modal .modal-content{
 
