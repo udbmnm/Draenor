@@ -10,7 +10,7 @@
 		<!-- Replace favicon.ico & apple-touch-icon.png in the root of your domain and delete these references -->
 		<link rel="shortcut icon" href="/favicon.ico" />
 		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-		<link rel="stylesheet" type="text/css" href="../style/reset-min.css">
+		<link rel="stylesheet" type="text/css" href="../style/reset.css">
 		<link rel="stylesheet" type="text/css" href="../style/draenor.css">
 		<script type="text/javascript" src="../zepto/zepto.js"></script>
 	</head>
@@ -33,8 +33,9 @@
 				</script>
 			</div>
 		</div>
-		<script type="text/javascript" src="../src/storage.js"></script>
-		<script type="text/javascript" src="../src/simpleanalysis.js"></script>
+		<!-- <script type="text/javascript" src="../src/build/storage.min.js"></script>
+		<script type="text/javascript" src="../src/build/simpleanalysis.min.js"></script> -->
+		<script type="text/javascript" src="../draenor.min.js"></script>
 		<script type="text/javascript">
 			var data = [{"count":"17","is_answer":"0","item_index":"3","item_title":"贵的离谱","item_image_url":" "},{"count":"0","is_answer":"0","item_index":"4","item_title":"好便宜啊","item_image_url":" "},{"count":"60","is_answer":"1","item_index":"1","item_title":"还可以","item_image_url":" "},{"count":"100","is_answer":"0","item_index":"2","item_title":"有点贵","item_image_url":" "}];
 			var cun = 177;
@@ -42,7 +43,7 @@
 				Cnumber:cun,
 				setData:data,
 				template:$('#vote-template-analysis').html()
-			})
+			});
 		</script>
 	</body>
 </html>
