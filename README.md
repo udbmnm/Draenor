@@ -6,8 +6,13 @@
 
 使用grunt工具，对其build，运行：
 
-	grunt libs  压缩src目录中的js文件
+	grunt libs  压缩src目录中的js文件 style目录中的css文件
+	
+	grunt conLibs 合并压缩文件
 
 # 程序运行条件 #
 
 在页面中，先引入zepto.js，draenor.css，再依次引入其他插件模块。
+
+
+
