@@ -23,6 +23,7 @@
 			.banner_ioc .banner{
 				width: 100%;
 				float: left;
+				position: relative;
 			}
 			.banner_ioc .banner img{
 				width: 100%;
@@ -46,27 +47,18 @@
 						<img src="img/banner02.jpg">
 					</div>
 					<div class="banner">
-						<img src="img/banner01.jpg">
-					</div>
-					<div class="banner">
-						<img src="img/banner02.jpg">
+						<img src="img/banner03.png">
 					</div>
 					<div class="banner">
 						<img src="img/banner01.jpg">
-					</div>
-					<div class="banner">
-						<img src="img/banner02.jpg">
 					</div>
 				</div>
 			</div>
 		</header>
-		<script type="text/javascript" src="../src/banner.js"></script>
-		<script type="text/javascript" src="../src/storage.js"></script>
+		<!--<button class="button" id="build">123</button>-->
+		<script type="text/javascript" src="../src/scrollAnimate.js"></script>
 		<script type="text/javascript">
 			$('#banner').scrollAnimate({});
-			$.storage.set('key123','123',true);
-			console.log($.storage.get('key'));
-			$.error.show('123');
 		</script>
 	</body>
 </html>
