@@ -2,12 +2,6 @@
 * mobile ui dialog 对话框 依赖 zepto.js  作者：wenren
 */
 (function($){
-  /**
-  *  @class Dialog
-  *  @constructor
-  *  @param options {String} this options in dialog bind
-  *  @param options {Object} this options in dialog init
-  */
   var Dialog = function(dom,options){
       this.options = options;
   }

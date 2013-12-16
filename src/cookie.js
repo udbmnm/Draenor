@@ -43,9 +43,9 @@
     $.cookie = {
         /**
         *   @method setCookie
-        *   @param name {string}
-        *   @param vlaue {string}
-        *   @param opts {object}
+        *   @param name {String} 设置cookie的key
+        *   @param vlaue {String} 设置cookie的value 
+        *   @param opts {Object} 设置cookie的多选参数
         */
         setCookie:function(name, value, opts){
             var o = opts;
@@ -54,7 +54,8 @@
         },
         /**
         *   @method getCookie
-        *   @param name {string}
+        *   @param name {String} 获取cookie的key
+        *   @return {String} 返回获取的cookie
         */
         getCookie:function(name){
             if( name === undefined ) return null;
@@ -62,7 +63,7 @@
         },
         /**
         *   @method deleteCookie
-        *   @param name {string}
+        *   @param name {String} 删除使用需要指明cookie的key
         */
         deleteCookie:function(name){
             var expdate = new Date(); 
@@ -71,7 +72,7 @@
         },
         /**
         *   @method isExists
-        *   @param name {string}
+        *   @param name {String} 判断某个cookie是否存在
         */
         isExists:function(name){
             var cookie = $.cookie.getCookie(name);
@@ -92,7 +93,7 @@
     }
     /**
     *   @method gotoPage
-    *   @param path {string}
+    *   @param path {String} 转跳页面时的参数
     */
     $.gotoPage = function(path){
         window.location.href = path;
