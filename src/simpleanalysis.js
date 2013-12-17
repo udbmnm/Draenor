@@ -21,11 +21,13 @@
 		elements.show();
 		var analyAnimate = elements.find('div.analyAnimate');
 		var animate =  new $.animates();
-		newArray.forEach(function(v,i){
-			var slide = analyAnimate[i];
-			animate.concat(slide,{width:v+'%'});
-			animate.start();
-		});
+		setTimeout(function(){
+			newArray.forEach(function(v,i){
+				var slide = analyAnimate[i];
+				animate.concat(slide,{width:v+'%'});
+				animate.start();
+			});
+		},500)
 	}
 	$.fn.simpleAnalysis = function(options){
 		new SimpleAnalysis(this,options);

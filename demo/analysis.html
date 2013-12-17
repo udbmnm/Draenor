@@ -10,9 +10,15 @@
 		<!-- Replace favicon.ico & apple-touch-icon.png in the root of your domain and delete these references -->
 		<link rel="shortcut icon" href="/favicon.ico" />
 		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-		<link rel="stylesheet" type="text/css" href="../style/reset.css">
-		<link rel="stylesheet" type="text/css" href="../style/draenor.css">
+		<!--<link rel="stylesheet" type="text/css" href="../style/reset.css">
+		<link rel="stylesheet" type="text/css" href="../style/draenor.css">-->
+		<link rel="stylesheet" type="text/css" href="../draenor.min.css">
 		<script type="text/javascript" src="../zepto/zepto.js"></script>
+		<style type="text/css">
+			.impor{
+				width: 84% !important;
+			}
+		</style>
 	</head>
 	<body>
 		<div style="padding:0 10px 0 10px;">
@@ -23,7 +29,7 @@
 						<div class="vote-box" data-index="<%=v.item_index%>">
 							<p><%=v.item_title%></p>
 							<div class="pad-box-10">
-								<div class="analymate">
+								<div class="analymate impor">
 									<div class="analyAnimate" style="background:<%=v.color%>"></div>
 								</div>
 								<div class='percentage <%=is_answer= v.is_answer == 1 ?  "onColor" : "";%>' style="background:#fff;"><%=v.percentage%></div>
