@@ -3,6 +3,10 @@
 */
 (function($){
     var storage = localStorage,localstoreConnectors = [],index,session = sessionStorage;
+    var loca = window.location;
+    $.PATH = {
+        host:'http://'+loca.host+'/'
+    }
     $.DOMcollection = {};
     /**
     *   @method receiveMessage

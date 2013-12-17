@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<!-- Always force latest IE rendering engine (even in intranet) & Chrome Frame
+		Remove this if you use the .htaccess -->
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+		<title>mobile button</title>
+		<meta name="viewport" content="width=device-width; initial-scale=1.0" />
+		<!-- Replace favicon.ico & apple-touch-icon.png in the root of your domain and delete these references -->
+		<link rel="shortcut icon" href="/favicon.ico" />
+		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+		<link rel="stylesheet" type="text/css" href="../style/reset.css">
+		<link rel="stylesheet" type="text/css" href="../style/draenor.css">
+		<script type="text/javascript" src="../zepto/zepto.js"></script>
+		<style type="text/css">
+			.wrap{
+				overflow: hidden;
+    			position: relative;
+			}
+			.con{
+				float: left;
+				position: relative;
+			}
+			.con img{
+				width: 100%;
+			}
+			.bgS{
+				
+			    border-radius: 4px;
+			    bottom: 10px;
+			    font-size: 12px;
+			    height: 20px;
+			    line-height: 20px;
+			    position: absolute;
+			    right: 5px;
+			    text-align: center;
+			    width: 120px;
+			}
+			.sc{
+				background: none repeat scroll 0 0 #000000;
+				opacity: 0.5;
+				color: #FFFFFF;
+			}
+			.ic{
+				background: #898;
+				opacity: 0.5;
+				color: #FFFFFF;
+			}
+		</style>
+	</head>
+	<body>
+		<div style="overflow: hidden;position: relative;width: 100%;">
+			<div id="test">
+				<div class="wrap" style="display:none;">
+					<div class="con">
+						<img src="img/banner01.jpg">
+						<div style="display:block" id="bgSaction" class="bgS sc">图片一&gt;</div>
+					</div>
+					<div class="con">
+						<img src="img/banner02.jpg">
+						<div style="display:block" id="bgIaction" class="bgS ic">图片二&gt;</div>
+					</div>
+				</div>
+			</div>
+		</div>
+		<script type="text/javascript" src="../src/storage.js"></script>
+		<script type="text/javascript" src="../src/transform.js"></script>
+		<script type="text/javascript">
+			(function(){
+				var test = $('#test');
+				var wrap = test.find('div.wrap');
+				var con = wrap.find('div.con');
+				var wid = test.width();
+				var len = 2;
+				var pos = 0;
+				test.css({visibility:'visible'});
+				wrap.css({width:wid*2});
+				while(len--){
+					var slide = con.eq(len);
+					slide.css({width:wid});
+					slide.css({left:len*-wid});
+					$.transformX(con,len,pos > len ? -wid : (pos < len ? wid : 0),0)
+				}
+				wrap.fadeIn('slow');
+				$('#bgSaction').on('click',function(){
+					len = 2;
+					while(len--){
+						$.transformX(con,len,len > pos ? (len-1)*wid : (len+1)*-wid,300);
+					} 
+				});
+				$('#bgIaction').on('click',function(){
+					len = 2;
+					while(len--){
+						$.transformX(con,len,len*wid ,300);
+					} 
+				})
+			})()
+		</script>
+	</body>
+</html>
