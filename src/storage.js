@@ -263,13 +263,36 @@
             /**
             *   @method hide
             */
-            hide:function(){
+            hide:function(callback){
                 setTimeout(function(){
                     $.DOMcollection.backdrop.hide();
                     e_p.hide();
+                    if(typeof callback === 'function'){
+                        callback();
+                    }
                 },2000);
             }
         }
     }
    $.error = error();
+   /**
+    *   @method wait
+   */
+   var wait = function(){
+        var body = $('body');
+        var html = '<div class="wait" id="wait" style="display:none;"><img src="../../css/img/ajax-loader.gif"></div>';
+        body.append(html);
+        var waiting = $('#wait');
+        return{
+            show:function(){
+                $.DOMcollection.backdrop.show();
+                waiting.show();
+            },
+            hide:function(){
+                $.DOMcollection.backdrop.hide();
+                waiting.hide();
+            }
+        }
+   } 
+   $.wait = wait();
 })(Zepto);
