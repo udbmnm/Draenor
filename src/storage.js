@@ -280,7 +280,7 @@
    */
    var wait = function(){
         var body = $('body');
-        var html = '<div class="wait" id="wait" style="display:none;"><img src="../../css/img/loading.gif"></div>';
+        var html = '<div class="wait" id="wait" style="display:none;"><img src='+$.PATH.host+'css/img/loading.gif></div>';
         body.append(html);
         var waiting = $('#wait');
         return{
