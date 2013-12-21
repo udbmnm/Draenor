@@ -36,4 +36,4 @@
       });
   }
   $.fn.dialog.Constructor = Dialog
-})(Zepto)
+})(Zepto);

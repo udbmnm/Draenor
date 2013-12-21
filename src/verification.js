@@ -69,4 +69,4 @@
       });
   }
   $.fn.verification.Constructor = Verification;
-})(Zepto)
+})(Zepto);
