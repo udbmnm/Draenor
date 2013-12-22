@@ -16,9 +16,9 @@
               bool = false;
               break;
           }
-          if(regx !== undefined){
+          if(regx){
             var x = regx[i];
-            if(x !== undefined){
+            if(x){
                 if(!x.desc){
                     for(var c in x){
                         if(!x[c].test(value)){
