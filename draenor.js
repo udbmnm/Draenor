@@ -49,7 +49,7 @@
         */
         setCookie:function(name, value, opts){
             var o = opts;
-            if( o === undefined ) o = { path: '/', expires: 1 }
+            if(!o) o = { path: '/', expires: 1 }
             cookie(name, value, opts);
         },
         /**
@@ -58,7 +58,7 @@
         *   @return {String} 返回获取的cookie
         */
         getCookie:function(name){
-            if( name === undefined ) return null;
+            if(!name) return false;
             return cookie(name);
         },
         /**
@@ -673,9 +673,9 @@
               bool = false;
               break;
           }
-          if(regx !== undefined){
+          if(regx){
             var x = regx[i];
-            if(x !== undefined){
+            if(x){
                 if(!x.desc){
                     for(var c in x){
                         if(!x[c].test(value)){
