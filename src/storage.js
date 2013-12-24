@@ -268,6 +268,7 @@
                     $.DOMcollection.backdrop.hide();
                     e_p.hide();
                     if(typeof callback === 'function'){
+
                         callback();
                     }
                 },2000);
@@ -288,9 +289,12 @@
                 $.DOMcollection.backdrop.show();
                 waiting.show();
             },
-            hide:function(){
+            hide:function(callback){
                 $.DOMcollection.backdrop.hide();
                 waiting.hide();
+                if(typeof callback === 'function'){
+                    callback();
+                }
             }
         }
    } 
