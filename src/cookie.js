@@ -93,9 +93,51 @@
     }
     /**
     *   @method gotoPage
-    *   @param path {String} 转跳页面时的参数
+    *   @param path {String} 转跳页面时的参数与历史
     */
-    $.gotoPage = function(path){
-        window.location.href = path;
+    $.gotoPage = function(path,obj,bool){
+        var route,stringRoute,urlJSON;
+        var parse = $.parseUrl();
+        var retention = {
+            "id":true,
+            "type":true
+        }
+        if(parse){
+            urlJSON = $.parseJSON(parse);
+        }
+        if(!path){
+            if(urlJSON.history){
+                path = urlJSON.history;
+                for(var x in urlJSON){
+                    if(!retention[x]){
+                        delete urlJSON[x];
+                    }
+                }
+                stringRoute = $.stringify(urlJSON);
+            }
+        }else{
+            if(obj){
+                if(typeof obj === 'string'){
+                    route = $.parseJSON(obj);
+                }else{
+                    route = urlJSON;
+                    obj = parse;
+                }
+                if($.type(route) === 'object'){
+                    if(bool){
+                        if(urlJSON){
+                            stringRoute = $.stringify($.extend(urlJSON,route));
+                        }
+                    }else{
+                        stringRoute = obj;
+                    }
+                }else{
+                    stringRoute = '';
+                }
+            }else{
+                stringRoute = '';
+            }
+        }   
+        window.location.href = path + stringRoute;
     }
 })(Zepto);
