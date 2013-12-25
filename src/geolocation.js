@@ -3,20 +3,22 @@
 */
 (function($){
 	var throwError = function(status,message,callback){
-		$.geolocation = {
+		var geolocation = {
 			"status":status,
 			"message":message
 		}
-    if(typeof callback === 'function') callback($.geolocation);
+    $.storage.set('geolocation',$.stringify(geolocation));
+    if(typeof callback === 'function') callback(geolocation);
 	} 
 	var getCurrentPosition = function(callback){
   		if(navigator.geolocation){
   			navigator.geolocation.getCurrentPosition(function(options){
-  				$.geolocation = {
+  				var geolocation = {
   					"latitude":options.coords.latitude,
   					"longitude":options.coords.longitude
   				}
-          if(typeof callback === 'function') callback($.geolocation);
+          $.storage.set('geolocation',$.stringify(geolocation));
+          if(typeof callback === 'function') callback(geolocation);
   			},function(error){
   				switch(error.code){
   					case 0:
@@ -35,7 +37,7 @@
   			});
   		}
   	}
-  $.geolocation;
+
 	$.geolocationSarat = function(bool,callback){
 		if(bool){
 			if(navigator.geolocation){
