@@ -93,10 +93,52 @@
     }
     /**
     *   @method gotoPage
-    *   @param path {String} 转跳页面时的参数
+    *   @param path {String} 转跳页面时的参数与历史
     */
-    $.gotoPage = function(path){
-        window.location.href = path;
+    $.gotoPage = function(path,obj,bool){
+        var route,stringRoute,urlJSON;
+        var parse = $.parseUrl();
+        var retention = {
+            "id":true,
+            "type":true
+        }
+        if(parse){
+            urlJSON = $.parseJSON(parse);
+        }
+        if(!path){
+            if(urlJSON.history){
+                path = urlJSON.history;
+                for(var x in urlJSON){
+                    if(!retention[x]){
+                        delete urlJSON[x];
+                    }
+                }
+                stringRoute = $.stringify(urlJSON);
+            }
+        }else{
+            if(obj){
+                if(typeof obj === 'string'){
+                    route = $.parseJSON(obj);
+                }else{
+                    route = urlJSON;
+                    obj = parse;
+                }
+                if($.type(route) === 'object'){
+                    if(bool){
+                        if(urlJSON){
+                            stringRoute = $.stringify($.extend(urlJSON,route));
+                        }
+                    }else{
+                        stringRoute = obj;
+                    }
+                }else{
+                    stringRoute = '';
+                }
+            }else{
+                stringRoute = '';
+            }
+        }   
+        window.location.href = path + stringRoute;
     }
 })(Zepto);
 /*
@@ -245,20 +287,22 @@
 */
 (function($){
 	var throwError = function(status,message,callback){
-		$.geolocation = {
+		var geolocation = {
 			"status":status,
 			"message":message
 		}
-    if(typeof callback === 'function') callback($.geolocation);
+    $.storage.set('geolocation',$.stringify(geolocation));
+    if(typeof callback === 'function') callback(geolocation);
 	} 
 	var getCurrentPosition = function(callback){
   		if(navigator.geolocation){
   			navigator.geolocation.getCurrentPosition(function(options){
-  				$.geolocation = {
+  				var geolocation = {
   					"latitude":options.coords.latitude,
   					"longitude":options.coords.longitude
   				}
-          if(typeof callback === 'function') callback($.geolocation);
+          $.storage.set('geolocation',$.stringify(geolocation));
+          if(typeof callback === 'function') callback(geolocation);
   			},function(error){
   				switch(error.code){
   					case 0:
@@ -277,7 +321,7 @@
   			});
   		}
   	}
-  $.geolocation;
+
 	$.geolocationSarat = function(bool,callback){
 		if(bool){
 			if(navigator.geolocation){
@@ -446,9 +490,6 @@
         var HREF = window.location.href,regx = /(\?|\#)(.+)/,bool;
         var ROUE = regx.exec(HREF);
         ROUE !== null ? bool = decodeURI(ROUE[2]) : bool = false;
-        if(!bool){
-            throw new Error('URL解析出错');
-        }
         return bool;
     }
     /**
@@ -592,6 +633,7 @@
                     $.DOMcollection.backdrop.hide();
                     e_p.hide();
                     if(typeof callback === 'function'){
+
                         callback();
                     }
                 },2000);
@@ -612,9 +654,12 @@
                 $.DOMcollection.backdrop.show();
                 waiting.show();
             },
-            hide:function(){
+            hide:function(callback){
                 $.DOMcollection.backdrop.hide();
                 waiting.hide();
+                if(typeof callback === 'function'){
+                    callback();
+                }
             }
         }
    } 
