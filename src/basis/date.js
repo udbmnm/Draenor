@@ -1,5 +1,5 @@
 /*
-* mobile ui date 依赖 zepto.js  作者：wenren
+* mobile modules date 依赖 zepto.js  作者：wenren
 */
 (function($){
     $.dateParse = function(options){

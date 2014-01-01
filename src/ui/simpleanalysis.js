@@ -1,5 +1,5 @@
 /*
-* mobile ui 依赖 zepto.js  作者：wenren
+* mobile ui simpleAnalysis 依赖 zepto.js  作者：wenren
 */
 (function($){
 	var SimpleAnalysis = function(elements,options){

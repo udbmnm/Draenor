@@ -1,5 +1,5 @@
 /*
-* mobile ui 2d css3动画 依赖 zepto.js  作者：wenren
+* mobile modules 2d css3动画 依赖 zepto.js  作者：wenren
 */
 (function($){
   	$.transformX = function(slides,index, dist, speed){

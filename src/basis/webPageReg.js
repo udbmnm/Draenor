@@ -1,5 +1,5 @@
 /*
-* mobile ui 网页抓取正则 依赖 zepto.js  作者：wenren
+* mobile modules 网页抓取正则 依赖 zepto.js  作者：wenren
 */
 (function($){
   $.webPageReg = {

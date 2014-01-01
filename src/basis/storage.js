@@ -1,5 +1,5 @@
 /*
-*   mobile localStorage 依赖zepto.js 参考xueduany/localstore  作者：wenren
+*   mobile modules storage 依赖zepto.js 参考xueduany/localstore  作者：wenren
 */
 (function($){
     var storage = localStorage,localstoreConnectors = [],index,session = sessionStorage;

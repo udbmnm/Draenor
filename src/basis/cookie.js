@@ -1,5 +1,5 @@
 /*
-* mobile ui browser 依赖 zepto.js  作者：wenren
+* mobile modules cookie 依赖 zepto.js  作者：wenren
 */
 (function($){
     var cookie = function (name, value, options) {

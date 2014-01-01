@@ -2414,6 +2414,8 @@ window.$ === undefined && (window.$ = Zepto);
       slice = [].slice;
 
     el.on = function(events, fn) {
+      console.log(events);
+      console.log(fn);
       if (isFunction(fn)) {
         events = events.split(/\s+/);
         for (var i = 0, len = events.length, type; i < len; i++) {
@@ -2494,9 +2496,11 @@ window.$ === undefined && (window.$ = Zepto);
       fn.on("pop", to);
     // fire
     } else if (to != location.hash) {
+      // console.log(to);
       if (history.pushState) history.pushState("", "", to);
       pop(to);
     }else{
+      // console.log(123);
       pop(to);
     }
   };

@@ -1,5 +1,5 @@
 /*
-* mobile ui 地理位置 依赖 zepto.js  作者：wenren
+* mobile modules 地理位置 依赖 zepto.js  作者：wenren
 */
 (function($){
 	var throwError = function(status,message,callback){
