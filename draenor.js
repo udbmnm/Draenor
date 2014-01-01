@@ -1,5 +1,5 @@
 /*
-* mobile ui browser 依赖 zepto.js  作者：wenren
+* mobile modules cookie 依赖 zepto.js  作者：wenren
 */
 (function($){
     var cookie = function (name, value, options) {
@@ -142,7 +142,7 @@
     }
 })(Zepto);
 /*
-* mobile ui date 依赖 zepto.js  作者：wenren
+* mobile modules date 依赖 zepto.js  作者：wenren
 */
 (function($){
     $.dateParse = function(options){
@@ -244,46 +244,7 @@
     }
 })(Zepto);
 /*
-* mobile ui dialog 对话框 依赖 zepto.js  作者：wenren
-*/
-(function($){
-  var Dialog = function(dom,options){
-      this.options = options;
-  }
-  Dialog.prototype = {
-      /**
-      * open dialog 
-      * @method show
-      */
-      show:function(){          
-          $.DOMcollection.backdrop.show();
-          this.show();
-      },
-      /**
-      * close dialog
-      * @method hide
-      */
-      hide:function(){
-          $.DOMcollection.backdrop.hide();
-          this.hide();
-      }
-  }
-  $.fn.dialog = function(options){
-      return this.each(function(){
-          var $this = $(this);
-          var data = $this.data('dialog');
-          if(!data){
-              $this.data('dialog',(data = new Dialog($this,options)));
-          }
-          if(typeof options === 'string'){
-              data[options].call($this);
-          }
-      });
-  }
-  $.fn.dialog.Constructor = Dialog
-})(Zepto);
-/*
-* mobile ui 地理位置 依赖 zepto.js  作者：wenren
+* mobile modules 地理位置 依赖 zepto.js  作者：wenren
 */
 (function($){
 	var throwError = function(status,message,callback){
@@ -331,43 +292,7 @@
 	}
 })(Zepto);
 /*
-* mobile ui 依赖 zepto.js  作者：wenren
-*/
-(function($){
-	var SimpleAnalysis = function(elements,options){
-		var newArray = [],Cun = parseInt(options.Cnumber),setData = options.setData;
-		var newColor = ['#fec960','#49b5ed','#e86b66','#3dbc7c','#8794ff'];
-		var Clen = newColor.length,Sindex = 1;
-		setData.forEach(function(v,i){
-			var count = Math.floor((parseInt(v.count) / Cun)*100);
-			v.percentage = count + '%';
-			newArray.push(count);
-			if(i === Clen*Sindex){
-				Sindex ++;
-			}
-			v.color = i < Clen ? newColor[i] : newColor[Clen - ((Clen*Sindex)%i + 1)];
-		});
-		var anRender = $.template.compile(options.template);
-		var anHtml = anRender({"anaVote":options.setData});
-		elements.html(anHtml);
-		elements.show();
-		var analyAnimate = elements.find('div.analyAnimate');
-		var animate =  new $.animates();
-		setTimeout(function(){
-			newArray.forEach(function(v,i){
-				var slide = analyAnimate[i];
-				animate.concat(slide,{width:v+'%'});
-				animate.start();
-			});
-		},500)
-	}
-	$.fn.simpleAnalysis = function(options){
-		new SimpleAnalysis(this,options);
-	}
-	$.fn.simpleAnalysis.Constructor = SimpleAnalysis;
-})(Zepto);
-/*
-*   mobile localStorage 依赖zepto.js 参考xueduany/localstore  作者：wenren
+*   mobile modules storage 依赖zepto.js 参考xueduany/localstore  作者：wenren
 */
 (function($){
     var storage = localStorage,localstoreConnectors = [],index,session = sessionStorage;
@@ -666,7 +591,7 @@
    $.wait = wait();
 })(Zepto);
 /*
-* mobile ui 2d css3动画 依赖 zepto.js  作者：wenren
+* mobile modules 2d css3动画 依赖 zepto.js  作者：wenren
 */
 (function($){
   	$.transformX = function(slides,index, dist, speed){
@@ -699,6 +624,94 @@
             style.MozTransform =
                 style.OTransform = 'translateY(' + dist + 'px)';
   	}
+})(Zepto);
+/*
+* mobile modules 网页抓取正则 依赖 zepto.js  作者：wenren
+*/
+(function($){
+  $.webPageReg = {
+      //获取网页body部份代码
+      body:/<body[^>]*>([\s\S]*)<\/body>/i,
+      //获取网页style部份代码
+      style:/<style[^>]*>([\s\S]*)<\/style>/i,
+      //获取网页script部份代码
+      script:/<script\b[^<]*(?:(?!<\/script)<[^>]*)*<\/script>/gi
+  }
+})(Zepto);
+/*
+* mobile ui dialog 对话框 依赖 zepto.js  作者：wenren
+*/
+(function($){
+  var Dialog = function(dom,options){
+      this.options = options;
+  }
+  Dialog.prototype = {
+      /**
+      * open dialog 
+      * @method show
+      */
+      show:function(){          
+          $.DOMcollection.backdrop.show();
+          this.show();
+      },
+      /**
+      * close dialog
+      * @method hide
+      */
+      hide:function(){
+          $.DOMcollection.backdrop.hide();
+          this.hide();
+      }
+  }
+  $.fn.dialog = function(options){
+      return this.each(function(){
+          var $this = $(this);
+          var data = $this.data('dialog');
+          if(!data){
+              $this.data('dialog',(data = new Dialog($this,options)));
+          }
+          if(typeof options === 'string'){
+              data[options].call($this);
+          }
+      });
+  }
+  $.fn.dialog.Constructor = Dialog
+})(Zepto);
+/*
+* mobile ui simpleAnalysis 依赖 zepto.js  作者：wenren
+*/
+(function($){
+	var SimpleAnalysis = function(elements,options){
+		var newArray = [],Cun = parseInt(options.Cnumber),setData = options.setData;
+		var newColor = ['#fec960','#49b5ed','#e86b66','#3dbc7c','#8794ff'];
+		var Clen = newColor.length,Sindex = 1;
+		setData.forEach(function(v,i){
+			var count = Math.floor((parseInt(v.count) / Cun)*100);
+			v.percentage = count + '%';
+			newArray.push(count);
+			if(i === Clen*Sindex){
+				Sindex ++;
+			}
+			v.color = i < Clen ? newColor[i] : newColor[Clen - ((Clen*Sindex)%i + 1)];
+		});
+		var anRender = $.template.compile(options.template);
+		var anHtml = anRender({"anaVote":options.setData});
+		elements.html(anHtml);
+		elements.show();
+		var analyAnimate = elements.find('div.analyAnimate');
+		var animate =  new $.animates();
+		setTimeout(function(){
+			newArray.forEach(function(v,i){
+				var slide = analyAnimate[i];
+				animate.concat(slide,{width:v+'%'});
+				animate.start();
+			});
+		},500)
+	}
+	$.fn.simpleAnalysis = function(options){
+		new SimpleAnalysis(this,options);
+	}
+	$.fn.simpleAnalysis.Constructor = SimpleAnalysis;
 })(Zepto);
 /*
 * mobile ui verification 表单验证 Forms 依赖 zepto.js  作者：wenren
@@ -771,17 +784,4 @@
       });
   }
   $.fn.verification.Constructor = Verification;
-})(Zepto);
-/*
-* mobile ui 网页抓取正则 依赖 zepto.js  作者：wenren
-*/
-(function($){
-  $.webPageReg = {
-      //获取网页body部份代码
-      body:/<body[^>]*>([\s\S]*)<\/body>/i,
-      //获取网页style部份代码
-      style:/<style[^>]*>([\s\S]*)<\/style>/i,
-      //获取网页script部份代码
-      script:/<script\b[^<]*(?:(?!<\/script)<[^>]*)*<\/script>/gi
-  }
 })(Zepto);
