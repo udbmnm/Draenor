@@ -8,7 +8,21 @@
 
 	grunt libs  压缩src目录中的js文件 style目录中的css文件
 	
-	grunt conLibs 合并压缩文件
+	grunt a 输出压缩所有模块
+	
+	grunt b 输出不压缩所有模块
+
+	grunt c 输出基础模块压缩，ui模块压缩
+
+#build版介绍#
+
+>draenor.min.js  所有模块压缩版集合
+
+>draenor.js  所有模块不压缩版集合
+
+>draenor.ui.min.js ui模块压缩版集合
+
+>draenor.basis.min.js 基础模块压缩版集合
 
 # 程序运行条件 #
 
