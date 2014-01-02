@@ -4,12 +4,13 @@ html, body, form, fieldset, p, div, h1, h2, h3, h4, h5, h6 {-webkit-text-size-ad
 	bottom: auto;
     display: block;
     left: auto;
-    position: relative;
+    position:absolute;
     right: auto;
-    top: auto;
+    top: 0px;
     z-index: ;
     overflow-x: auto;
-    z-index: 1050;
+    z-index: 9999;
+    width: 100%;
 }
 .modal .modal-dialog{
 	left: auto;
@@ -55,7 +56,7 @@ html, body, form, fieldset, p, div, h1, h2, h3, h4, h5, h6 {-webkit-text-size-ad
     position: fixed;
     right: 0;
     top: 0;
-    z-index: 1030;
+    z-index: 9998;
     transition: opacity 0.15s linear 0s;
 }
 .modal .modal-dialog{
