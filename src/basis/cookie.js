@@ -100,7 +100,8 @@
         var parse = $.parseUrl();
         var retention = {
             "id":true,
-            "type":true
+            "type":true,
+            "isAnonymous":true
         }
         if(parse){
             urlJSON = $.parseJSON(parse);
