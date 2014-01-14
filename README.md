@@ -14,16 +14,6 @@
 
 	grunt c 输出基础模块压缩，ui模块压缩
 
-#build版介绍#
-
->draenor.min.js  所有模块压缩版集合
-
->draenor.js  所有模块不压缩版集合
-
->draenor.ui.min.js ui模块压缩版集合
-
->draenor.basis.min.js 基础模块压缩版集合
-
 # 程序运行条件 #
 
 在页面中，先引入zepto.js，draenor.css，再依次引入其他插件模块。
